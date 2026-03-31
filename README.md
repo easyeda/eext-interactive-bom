@@ -1,4 +1,4 @@
-# Interactive BOM for EasyEDA Pro
+# 交互式BOM / Interactive BOM
 
 [中文](#中文) | [English](#english)
 
@@ -7,6 +7,8 @@
 ## 中文
 
 交互式 BOM 查看器，为 嘉立创EDA/EasyEDA Pro 提供实时 PCB 预览与 BOM 联动功能。这个是参考iBOM [https://github.com/openscopeproject/InteractiveHtmlBom](https://github.com/openscopeproject/InteractiveHtmlBom) 的重新实现。功能特性会比原生的iBOM少一些。如果想使用和原生功能一致的iBOM扩展，请查看：[iBOM for EasyEDA](https://github.com/easyeda/ eext-interactive-html-bom)
+
+![](./images/view.jpg)
 
 ### 功能特性
 
