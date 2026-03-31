@@ -17,6 +17,8 @@
 .eslintcache
 debug.log
 *.md
+!README.md
+!CHANGELOG.md
 !dist/
 !iframe/
 !iframe/js/

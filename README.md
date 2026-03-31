@@ -6,7 +6,7 @@
 
 ## 中文
 
-交互式 BOM 查看器，为 嘉立创EDA/EasyEDA Pro 提供实时 PCB 预览与 BOM 联动功能。这个是参考iBOM [https://github.com/openscopeproject/InteractiveHtmlBom](https://github.com/openscopeproject/InteractiveHtmlBom) 的重新实现。功能特性会比原生的iBOM少一些。如果想使用和原生功能一致的iBOM扩展，请查看：[iBOM for EasyEDA](https://github.com/easyeda/ eext-interactive-html-bom)
+交互式 BOM 查看器，为 嘉立创EDA/EasyEDA Pro 提供实时 PCB 预览与 BOM 联动功能。这个是参考iBOM [InteractiveHtmlBom](https://github.com/openscopeproject/InteractiveHtmlBom) 的重新实现。功能特性会比原生的iBOM少一些。如果想使用和原生功能一致的iBOM扩展，请使用：[iBOM for EasyEDA](https://github.com/easyeda/eext-interactive-html-bom)
 
 ![](./images/view.jpg)
 
@@ -53,11 +53,15 @@ npm run lint
 
 Apache-2.0
 
+### 其他
+
+logo来至[InteractiveHtmlBom](https://github.com/openscopeproject/InteractiveHtmlBom)的Icon修改。
+
 ---
 
 ## English
 
-The Interactive BOM Viewer provides real-time PCB preview and BOM linkage functionality for JLCPCB/EasyEDA Pro. This is a reimplementation refered on iBOM [https://github.com/openscopeproject/InteractiveHtmlBom](https://github.com/openscopeproject/InteractiveHtmlBom). Its functional features may be less than the native iBOM. If you want to use an extension of iBOM that provides the same functionality as the native one, please refer to: [iBOM for EasyEDA](https://github.com/easyeda/eext-ibom-for-easyeda)
+The Interactive BOM Viewer provides real-time PCB preview and BOM linkage functionality for JLCPCB/EasyEDA Pro. This is a reimplementation refered on iBOM [https://github.com/openscopeproject/InteractiveHtmlBom](https://github.com/openscopeproject/InteractiveHtmlBom). Its functional features may be less than the native iBOM. If you want to use an extension of iBOM that provides the same functionality as the native one, please refer to: [iBOM for EasyEDA](https://github.com/easyeda/eext-interactive-html-bom)
 
 ### Features
 
@@ -101,3 +105,8 @@ npm run lint
 ### License
 
 Apache-2.0
+
+
+### Other
+
+logo come from [InteractiveHtmlBom](https://github.com/openscopeproject/InteractiveHtmlBom) icon modification。

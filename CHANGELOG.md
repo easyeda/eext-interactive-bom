@@ -1,12 +1,12 @@
-# Changelog
+# 更新日志
 
 ## [1.0.0] - 2024-03-31
 
-### Added
-- Interactive BOM viewer with real-time PCB preview
-- Top/Bottom/Both layer views
-- Tracks and vias visualization
-- Aggregate/List mode toggle
-- CSV export
-- Dark mode
-- Multi-language support (Chinese/English)
+### 已添加
+- 交互式物料清单查看器，附带实时电路板预览功能
+- 顶层/底层/双层视图
+- 轨迹和过孔可视化
+- 聚合/列表模式切换
+- CSV导出
+- 暗色模式
+- 多语言支持（中文/英文）
