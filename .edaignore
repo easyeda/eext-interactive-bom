@@ -23,3 +23,10 @@ debug.log
 !iframe/
 !iframe/js/
 !iframe/js/vendor/
+/CLAUDE.md
+/QWEN.md
+/.claude
+/.qwen
+/bash.exe.stackdump
+/PRD.txt
+/FIXES.md

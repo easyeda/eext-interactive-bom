@@ -6,3 +6,10 @@
 /node_modules/
 /.eslintcache
 debug.log
+/CLAUDE.md
+/QWEN.md
+/.claude
+/.qwen
+/bash.exe.stackdump
+/PRD.txt
+/FIXES.md
