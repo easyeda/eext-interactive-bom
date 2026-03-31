@@ -1,0 +1,12 @@
+
+v 导出csv的表头文本需要用英文双引号包裹，分隔符用英文逗号，目前用了中文逗号；
+
+v 拆分的js文件不应该移入src目录下吗；src目录的文件请分析是否还有调用，没有则清理掉，然后把拆分的js移入src目录调整资源文件的引用；
+= 使用EPCB_LayerId获取板框层的板框PCB_PrimitivePolyline.get()，并得到板框路径getState_Polygon()，绘制在预览画布中，目前绘制的板框路径与实际的板框对不上 ​
+  
+= 在预览区域上面增加一个导出html按钮，点击后把当前弹窗的全部内容导出为一个单html页面，支持在浏览器打开并渲染出相同效果;
+v 导出的独立html需要隐藏导出csv按钮，隐藏导出html按钮；需要点击列表时可以定位到预览的元件位置，预览区域要一起输出渲染数据并显示
+
+v 元件列表的表头支持点击排序列表内容
+
+对当前打开的PCB使用先使用接口获取元件信息eda.pcb_PrimitiveComponent.getAll()，得到footprint.libraryUuid和uuid，然后这个再使用接口SYS_FileManager.getFootprintFileByFootprintUuid()来获取封装源码elibz2文件（该文件是一个zip压缩包，请解析后得到一个json内容文件，该文件为封装源码），然后根据源码格式文档https://image.lceda.cn/files/lceda-pro-file-format-v3_2025.10.21.md理解封装源码定义，对封装源码进行解析，然后渲染焊盘和丝印层的线条在预览图上

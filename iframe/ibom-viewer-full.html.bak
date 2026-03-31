@@ -1,0 +1,2114 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Interactive BOM Viewer</title>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; font-family: Verdana, sans-serif; font-size: 12px; overflow: hidden; }
+
+    :root {
+      --bg-color: #fff; --panel-bg: #fff; --text-color: #333; --border-color: #ddd;
+      --hover-bg: #e8e8e8; --selected-bg: #d4e5f5; --highlight-bg: #fff3cd;
+      --btn-bg: #eee; --btn-border: #888; --btn-hover: #e0e0e0; --btn-active: #0a0;
+    }
+    .dark {
+      --bg-color: #252c30; --panel-bg: #252c30; --text-color: #eee; --border-color: #444;
+      --hover-bg: #3d3d3d; --selected-bg: #2a4d6d; --highlight-bg: #5a4a00;
+      --btn-bg: #c3b7b5; --btn-border: #555; --btn-hover: #4c4c4c;
+    }
+
+    body { background: var(--bg-color); color: var(--text-color); display: flex; flex-direction: column; }
+
+    /* 主内容区 */
+    .main-container { 
+      display: flex; 
+      flex: 1; 
+      overflow: hidden; 
+      position: relative;
+    }
+
+    /* BOM 表格区 */
+    .bom-panel { 
+      width: 50%; 
+      min-width: 300px;
+      display: flex; 
+      flex-direction: column; 
+      border-right: 1px solid var(--border-color); 
+      overflow: hidden; 
+    }
+    
+    /* 分隔线 */
+    .splitter {
+      width: 6px;
+      background: var(--border-color);
+      cursor: col-resize;
+      z-index: 100;
+      flex-shrink: 0;
+    }
+    .splitter:hover, .splitter.dragging {
+      background: #007acc;
+    }
+    
+    /* 预览区 */
+    .preview-panel { 
+      flex: 1; 
+      min-width: 300px;
+      display: flex; 
+      flex-direction: column; 
+      overflow: hidden; 
+      background: #f0f0f0 !important; 
+    }
+    body.dark .preview-panel {
+      background: rgb(38, 44, 48) !important;
+    }
+
+    /* BOM 工具栏 - 搜索框在左边 */
+    .bom-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px;
+      background: var(--panel-bg);
+      border-bottom: 1px solid var(--border-color);
+      gap: 8px;
+    }
+    .bom-toolbar-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 1;
+    }
+    .bom-toolbar-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .search-box {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .search-box input[type="text"] {
+      padding: 6px 10px;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      background: var(--panel-bg);
+      color: var(--text-color);
+      font-size: 12px;
+      width: 180px;
+    }
+    .search-box input[type="text"]:focus {
+      outline: none;
+      border-color: #007acc;
+    }
+    .bom-info {
+      font-size: 11px;
+      color: var(--text-color);
+    }
+    
+    /* 聚合切换按钮 */
+    .toggle-btn {
+      padding: 4px 10px;
+      border: 1px solid var(--btn-border);
+      border-radius: 3px;
+      background: var(--btn-bg);
+      color: var(--text-color);
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: bold;
+      white-space: nowrap;
+    }
+    .toggle-btn:hover { background: var(--btn-hover); }
+    .toggle-btn.active { background: var(--btn-active); color: #fff; }
+
+    .bom-container { flex: 1; overflow: auto; }
+
+    .bom-table { 
+      width: auto; 
+      min-width: 100%;
+      border-collapse: collapse; 
+      font-family: Consolas, monospace; 
+      font-size: 12px; 
+      table-layout: fixed;
+    }
+    .bom-table th, .bom-table td { 
+      border: 1px solid var(--border-color); 
+      padding: 4px 6px; 
+      text-align: center; 
+      overflow: hidden; 
+      text-overflow: ellipsis; 
+      white-space: nowrap;
+    }
+    .bom-table th {
+      background: var(--btn-bg);
+      position: sticky;
+      top: 0;
+      user-select: none;
+      position: relative;
+    }
+    /* 列宽拖动手柄 */
+    .resizer {
+      position: absolute;
+      right: 0;
+      top: 0;
+      bottom: 0;
+      width: 8px;
+      cursor: col-resize;
+      background: transparent;
+      z-index: 10;
+    }
+    .resizer:hover, .resizer.resizing {
+      background: #007acc;
+    }
+    
+    /* 拖动时的指示线 */
+    .column-resize-indicator {
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: #007acc;
+      z-index: 9999;
+      pointer-events: none;
+    }
+    .bom-table tr:hover { background: var(--hover-bg); cursor: pointer; }
+    .bom-table tr.selected { background: var(--selected-bg); }
+    .bom-table tr.highlight { background: var(--highlight-bg); }
+    .bom-table tr.checked { opacity: 0.6; }
+    
+    /* 关键字高亮样式 */
+    .keyword-highlight {
+      background: #ffeb3b;
+      color: #000;
+      font-weight: bold;
+      padding: 1px 2px;
+      border-radius: 2px;
+    }
+    .dark .keyword-highlight {
+      background: #f57c00;
+      color: #fff;
+    }
+
+    /* 列宽定义 - 最后一列自动填充 */
+    .col-check { width: 30px; min-width: 30px; }
+    .col-designators { width: 120px; min-width: 80px; }
+    .col-value { width: 150px; min-width: 100px; }
+    .col-package { width: 120px; min-width: 80px; }
+    .col-quantity { width: 50px; min-width: 40px; }
+    .col-layer { width: 80px; min-width: 50px; }
+    
+    /* 层列字体颜色 */
+    .layer-top { color: #d32f2f; font-weight: bold; }
+    .layer-bottom { color: #1976d2; font-weight: bold; }
+    .dark .layer-top { color: #ef5350; }
+    .dark .layer-bottom { color: #42a5f5; }
+
+    /* 预览区 */
+    .preview-panel { 
+      flex: 1; 
+      min-width: 300px;
+      display: flex; 
+      flex-direction: column; 
+      overflow: hidden; 
+      background: #1a1a1a; 
+      position: relative;
+    }
+    body.dark .preview-panel {
+      background: rgb(38, 44, 48);
+    }
+    
+    /* 十字线标记 */
+    .crosshair {
+      position: absolute;
+      pointer-events: none;
+      z-index: 1000;
+    }
+    .crosshair::before, .crosshair::after {
+      content: '';
+      position: absolute;
+      background: rgba(255, 87, 34, 0.8);
+    }
+    .crosshair::before {
+      width: 100%;
+      height: 2px;
+      top: 50%;
+      left: 0;
+      transform: translateY(-50%);
+    }
+    .crosshair::after {
+      width: 2px;
+      height: 100%;
+      left: 50%;
+      top: 0;
+      transform: translateX(-50%);
+    }
+    
+    /* 右键菜单 */
+    .context-menu {
+      position: absolute;
+      background: var(--panel-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      z-index: 10000;
+      min-width: 120px;
+    }
+    .context-menu-item {
+      padding: 8px 16px;
+      cursor: pointer;
+      font-size: 12px;
+      color: var(--text-color);
+    }
+    .context-menu-item:hover {
+      background: var(--hover-bg);
+    }
+
+    /* 预览区工具栏 - 所有控件放在这里 */
+    .preview-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px;
+      background: var(--panel-bg);
+      border-bottom: 1px solid var(--border-color);
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .preview-toolbar-group {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding-right: 8px;
+      border-right: 1px solid var(--border-color);
+    }
+    .preview-toolbar-group:last-child {
+      border-right: none;
+    }
+    .preview-toolbar label {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      cursor: pointer;
+      font-size: 11px;
+      white-space: nowrap;
+    }
+    .preview-toolbar button {
+      padding: 4px 8px;
+      border: 1px solid var(--btn-border);
+      border-radius: 3px;
+      background: var(--btn-bg);
+      color: var(--text-color);
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: bold;
+    }
+    .preview-toolbar button:hover { background: var(--btn-hover); }
+    .preview-toolbar button.active { background: var(--btn-active); color: #fff; }
+
+    /* 暗色模式图标按钮 */
+    .dark-mode-btn {
+      width: 28px;
+      height: 28px;
+      padding: 4px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+    .dark-mode-btn:hover {
+      background: var(--btn-hover);
+    }
+
+    .canvas-wrapper { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .canvas-container {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      border-bottom: 1px solid var(--border-color);
+      background: #f0f0f0 !important;
+      z-index: 1;
+    }
+    body.dark .canvas-container {
+      background: rgb(38, 44, 48) !important;
+    }
+    .canvas-container:last-child { border-bottom: none; }
+    .canvas-container.hidden { 
+      position: absolute;
+      visibility: hidden;
+      opacity: 0;
+      z-index: 0;
+      pointer-events: none;
+    }
+    .canvas-container canvas {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      image-rendering: -webkit-optimize-contrast;
+      image-rendering: crisp-edges;
+    }
+
+    .canvas-label {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      padding: 4px 8px;
+      background: rgba(0,0,0,0.7);
+      color: #fff;
+      border-radius: 3px;
+      font-size: 11px;
+      z-index: 10;
+    }
+
+    /* 状态栏 */
+    .status-bar { 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center;
+      padding: 4px 8px; 
+      background: #007acc; 
+      color: #fff; 
+      font-size: 11px; 
+    }
+    .status-bar-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex: 1;
+    }
+    .status-bar-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    /* 滚动条 */
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: var(--bg-color); }
+    ::-webkit-scrollbar-thumb { background: #aaa; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #888; }
+    .dark ::-webkit-scrollbar-track { background: #2d2d2d; }
+    .dark ::-webkit-scrollbar-thumb { background: #555; }
+  </style>
+</head>
+<body>
+  <!-- 主内容区 -->
+  <div class="main-container">
+    <!-- BOM 表格区 -->
+    <div class="bom-panel">
+      <!-- BOM 工具栏 - 搜索框在左边 -->
+      <div class="bom-toolbar">
+        <div class="bom-toolbar-left">
+          <div class="search-box">
+            <input type="text" id="highlightInput" placeholder="过滤位号...">
+          </div>
+          <div class="search-box">
+            <input type="text" id="searchInput" placeholder="过滤...">
+          </div>
+        </div>
+        <div class="bom-toolbar-right">
+          <button id="aggregateToggle" class="toggle-btn" title="切换聚合模式">📄 列表</button>
+          <button id="exportBtn" class="toggle-btn" title="导出 CSV">📥 导出</button>
+        </div>
+      </div>
+      <div class="bom-container">
+        <table class="bom-table" id="bomTable">
+          <thead>
+            <tr>
+              <th class="col-check"><input type="checkbox" id="selectAll"></th>
+              <th class="col-designators">位号</th>
+              <th class="col-value">值</th>
+              <th class="col-package">封装</th>
+              <th class="col-quantity">数量</th>
+              <th class="col-layer">层</th>
+            </tr>
+          </thead>
+          <tbody id="bomBody"></tbody>
+        </table>
+      </div>
+    </div>
+    
+    <!-- 分隔线 -->
+    <div class="splitter" id="splitter"></div>
+    
+    <!-- PCB 预览区 -->
+    <div class="preview-panel">
+      <!-- 预览区工具栏 - 所有控件放在这里 -->
+      <div class="preview-toolbar">
+        <div class="preview-toolbar-group">
+          <button id="darkModeBtn" class="dark-mode-btn" title="切换暗色模式">🌙</button>
+        </div>
+        <div class="preview-toolbar-group">
+          <label><input type="checkbox" id="showRefs" checked> 位号</label>
+          <label><input type="checkbox" id="showValues" checked> 值</label>
+          <label><input type="checkbox" id="showPads" checked> 焊盘</label>
+          <label><input type="checkbox" id="highlightPin1"> 第一引脚</label>
+        </div>
+        <div class="preview-toolbar-group">
+          <button id="layerF" class="active">顶层</button>
+          <button id="layerFB">双面</button>
+          <button id="layerB">底层</button>
+        </div>
+      </div>
+      <div class="canvas-wrapper">
+        <!-- 顶层 Canvas -->
+        <div class="canvas-container" id="frontContainer">
+          <div class="canvas-label">顶层 (Front)</div>
+          <canvas id="frontCanvas"></canvas>
+        </div>
+        <!-- 底层 Canvas -->
+        <div class="canvas-container" id="backContainer">
+          <div class="canvas-label">底层 (Back)</div>
+          <canvas id="backCanvas"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 状态栏 -->
+  <div class="status-bar">
+    <div class="status-bar-left">
+      <span id="statusText">准备就绪</span>
+      <span id="bomStats">BOM: <span id="bomCount">0</span> 项 | 元件：<span id="compCount">0</span></span>
+    </div>
+    <div class="status-bar-right">
+      <span id="layerInfo">F: 0 | B: 0</span>
+    </div>
+  </div>
+
+  <script>
+    // 等待 eda API 可用
+    function waitForEda(timeout = 5000) {
+      return new Promise((resolve, reject) => {
+        if (typeof eda !== 'undefined') {
+          resolve();
+          return;
+        }
+        
+        const startTime = Date.now();
+        const checkInterval = setInterval(() => {
+          if (typeof eda !== 'undefined') {
+            clearInterval(checkInterval);
+            resolve();
+          } else if (Date.now() - startTime > timeout) {
+            clearInterval(checkInterval);
+            reject(new Error('Timeout waiting for eda API'));
+          }
+        }, 100);
+      });
+    }
+    
+    // 全局状态
+    const state = {
+      components: [],
+      bomData: [],
+      flatBomData: [], // 非聚合的扁平数据
+      boardOutline: null, // 板框数据
+      darkMode: false,
+      currentLayer: 'F',
+      showRefs: true,
+      showValues: true,
+      showPads: true,
+      highlightPin1: false,
+      checkedItems: new Set(),
+      selectedRow: null,
+      componentElements: { F: {}, B: {} },
+      highlightedDesignators: new Set(),
+      aggregateMode: false, // 默认非聚合（列表模式）
+      searchQuery: '', // 过滤全部的搜索词
+      highlightQuery: '', // 高亮位号的搜索词
+      highlightFilterMode: false, // 位号过滤框是否处于过滤模式（回车后）
+      columnWidths: {
+        designators: 120,
+        value: 150,
+        package: 120,
+        quantity: 50,
+        layer: 60
+      },
+      // PCB 视图状态
+      viewBox: { x: 0, y: 0, width: 0, height: 0 },
+      panOffset: { x: 0, y: 0 },
+      scale: 1,
+      isPanning: false,
+      panStart: { x: 0, y: 0 }
+    };
+
+    // 获取 PCB 数据（包括元件和板框）
+    async function fetchPcbData() {
+      if (typeof eda === 'undefined') {
+        throw new Error('eda API not available');
+      }
+      
+      try {
+        // 获取所有元件
+        let components = [];
+        if (eda.pcb_PrimitiveComponent && typeof eda.pcb_PrimitiveComponent.getAll === 'function') {
+          components = await eda.pcb_PrimitiveComponent.getAll() || [];
+        }
+        
+        // 获取板框（layerid=11 的 PCB_PrimitivePolyline）
+        let boardOutline = null;
+        if (eda.pcb_PrimitivePolyline && typeof eda.pcb_PrimitivePolyline.getAll === 'function') {
+          const polylines = await eda.pcb_PrimitivePolyline.getAll() || [];
+          // 查找 layerid=11 的板框线
+          boardOutline = polylines.find(pl => pl.layerid === 11) || null;
+        }
+        
+        return { 
+          components: components,
+          boardOutline: boardOutline
+        };
+      } catch (err) {
+        console.error('[iBom] fetchPcbData error:', err);
+        throw err;
+      }
+    }
+
+    // 获取元件的值
+    // 逻辑：取元件的 Name（getState_Name() 接口）
+    // 如果 Name 的值是 "={xxx}" 结构，使用 getState_OtherProperty() 查询相同名称的 "xxx" 属性，并取其值
+    // 如果 xxx 是 "Manufacturer Part" 且 otherProperty 中没有，返回 getState_ManufacturerId() 的值
+    // 如果 getState_ManufacturerId() 不存在，返回 getState_Component() 的 libraryUuid 查询出来的器件 Title
+    function getComponentValue(comp) {
+      // 1. 尝试使用 getState_Name() API 获取 Name
+      if (comp.getState_Name && typeof comp.getState_Name === 'function') {
+        try {
+          const nameValue = comp.getState_Name();
+          if (nameValue && typeof nameValue === 'string' && nameValue.trim() !== '') {
+            const trimmedName = nameValue.trim();
+            
+            // 检查是否是 "={xxx}" 格式
+            const match = trimmedName.match(/^=\{([^}]+)\}$/);
+            if (match) {
+              // 获取 {} 内的属性名
+              const propName = match[1].trim();
+              
+              // 使用 getState_OtherProperty() 查询相同名称的属性
+              if (comp.getState_OtherProperty && typeof comp.getState_OtherProperty === 'function') {
+                try {
+                  const otherProp = comp.getState_OtherProperty();
+                  if (otherProp && typeof otherProp === 'object') {
+                    // 尝试多种可能的键名格式
+                    const possibleKeys = [
+                      propName,
+                      propName.toLowerCase(),
+                      propName.toUpperCase(),
+                      propName.replace(/\s+/g, ''),
+                      propName.replace(/\s+/g, '_'),
+                      propName.replace(/\s+/g, '-'),
+                    ];
+                    
+                    for (const key of possibleKeys) {
+                      if (otherProp[key] !== undefined && otherProp[key] !== null) {
+                        const val = otherProp[key];
+                        const result = typeof val === 'string' ? val.trim() : String(val);
+                        if (result) return result;
+                      }
+                    }
+                  }
+                } catch (e) {
+                  console.warn('[iBom] Failed to call getState_OtherProperty:', e);
+                }
+              }
+              
+              // 2. 如果 otherProperty 中没有找到，且 xxx 是 "Manufacturer Part"
+              if (propName.toLowerCase() === 'manufacturer part') {
+                // 2.1 尝试使用 getState_ManufacturerId() 获取制造商信息
+                if (comp.getState_ManufacturerId && typeof comp.getState_ManufacturerId === 'function') {
+                  try {
+                    const mfgId = comp.getState_ManufacturerId();
+                    if (mfgId && typeof mfgId === 'object') {
+                      // 从 ManufacturerId 对象中获取 Part 信息
+                      if (mfgId.part || mfgId.Part || mfgId.partNumber || mfgId.PartNumber) {
+                        const result = mfgId.part || mfgId.Part || mfgId.partNumber || mfgId.PartNumber;
+                        return typeof result === 'string' ? result.trim() : String(result);
+                      }
+                    }
+                  } catch (e) {
+                    console.warn('[iBom] Failed to call getState_ManufacturerId:', e);
+                  }
+                }
+                
+                // 2.2 尝试从 otherProperty 获取 Device 值
+                if (comp.otherProperty && typeof comp.otherProperty === 'object') {
+                  if (comp.otherProperty.Device && typeof comp.otherProperty.Device === 'string' && comp.otherProperty.Device.trim() !== '') {
+                    return comp.otherProperty.Device.trim();
+                  }
+                }
+                
+                // 2.3 尝试使用 getState_Component() 获取器件信息
+                if (comp.getState_Component && typeof comp.getState_Component === 'function') {
+                  try {
+                    const component = comp.getState_Component();
+                    if (component && typeof component === 'object') {
+                      // 从 Component 对象中获取 Title
+                      if (component.title || component.Title || component.name || component.Name) {
+                        const result = component.title || component.Title || component.name || component.Name;
+                        return typeof result === 'string' ? result.trim() : String(result);
+                      }
+                      
+                      // 或者使用 libraryUuid 查询
+                      if (component.libraryUuid) {
+                        // 这里可以尝试使用 libraryUuid 查询器件信息
+                        // 但由于是同步函数，无法进行异步查询，返回 libraryUuid 作为标识
+                        return component.libraryUuid;
+                      }
+                    }
+                  } catch (e) {
+                    console.warn('[iBom] Failed to call getState_Component:', e);
+                  }
+                }
+              }
+              
+              // 3. 如果上述方法都失败，返回属性名本身
+              return propName;
+            }
+            
+            // 普通名称，返回去除 = 前缀的值
+            return trimmedName.startsWith('=') ? trimmedName.substring(1) : trimmedName;
+          }
+        } catch (e) {
+          console.warn('[iBom] Failed to call getState_Name:', e);
+        }
+      }
+      
+      // 4. 降级方案：使用 comp.name
+      if (comp.name && typeof comp.name === 'string' && comp.name.trim() !== '') {
+        const nameValue = comp.name.trim();
+        
+        // 检查是否是 "={xxx}" 格式
+        const match = nameValue.match(/^=\{([^}]+)\}$/);
+        if (match) {
+          const propName = match[1].trim();
+          
+          // 尝试从 otherProperty 获取
+          if (comp.otherProperty && typeof comp.otherProperty === 'object') {
+            const possibleKeys = [
+              propName,
+              propName.toLowerCase(),
+              propName.toUpperCase(),
+              propName.replace(/\s+/g, ''),
+              propName.replace(/\s+/g, '_'),
+            ];
+            
+            for (const key of possibleKeys) {
+              if (comp.otherProperty[key] !== undefined && comp.otherProperty[key] !== null) {
+                const val = comp.otherProperty[key];
+                const result = typeof val === 'string' ? val.trim() : String(val);
+                if (result) return result;
+              }
+            }
+          }
+          
+          // 如果 xxx 是 "Manufacturer Part"，尝试从 comp.manufacturerPart 获取
+          if (propName.toLowerCase() === 'manufacturer part') {
+            if (comp.manufacturerPart && typeof comp.manufacturerPart === 'string' && comp.manufacturerPart.trim() !== '') {
+              return comp.manufacturerPart.trim();
+            }
+          }
+          
+          return propName;
+        }
+        
+        return nameValue.startsWith('=') ? nameValue.substring(1) : nameValue;
+      }
+      
+      // 5. 使用 Value
+      if (comp.value && typeof comp.value === 'string' && comp.value.trim() !== '') {
+        return comp.value.trim();
+      }
+      
+      // 6. 使用 Manufacturer Part
+      if (comp.manufacturerPart && typeof comp.manufacturerPart === 'string' && comp.manufacturerPart.trim() !== '') {
+        return comp.manufacturerPart.trim();
+      }
+      
+      // 7. 使用 LCSC Part
+      if (comp.lcscPart && typeof comp.lcscPart === 'string' && comp.lcscPart.trim() !== '') {
+        return comp.lcscPart.trim();
+      }
+      
+      return 'unknown';
+    }
+
+    // 获取元件的封装
+    function getComponentPackage(comp) {
+      const ref = comp.ref || comp.designator || 'unknown';
+      
+      // 调试输出：查看组件封装相关属性
+      console.log('[iBom] [getComponentPackage] Component:', {
+        ref: ref,
+        footprint: comp.footprint,
+        footprintName: comp.footprintName,
+        package: comp.package,
+        otherProperty: comp.otherProperty
+      });
+
+      // 尝试从 otherProperty 中获取 footprint
+      if (comp.otherProperty) {
+        console.log('[iBom] [getComponentPackage] Trying otherProperty:', comp.otherProperty);
+        
+        // otherProperty 可能是字符串或对象
+        if (typeof comp.otherProperty === 'string') {
+          try {
+            const otherProps = JSON.parse(comp.otherProperty);
+            console.log('[iBom] [getComponentPackage] Parsed otherProperty:', otherProps);
+            if (otherProps && typeof otherProps === 'object') {
+              // 尝试多种可能的键名
+              const footprintKeys = ['footprint', 'Footprint', 'FOOTPRINT', 'footprintName', 'FootprintName', 'package', 'Package', 'PKG', '封装', 'Footprint_Name'];
+              for (const key of footprintKeys) {
+                if (otherProps[key] && typeof otherProps[key] === 'string' && otherProps[key].trim()) {
+                  console.log('[iBom] [getComponentPackage] Found in otherProperty with key:', key, 'value:', otherProps[key]);
+                  return otherProps[key].trim();
+                }
+              }
+            }
+          } catch (e) {
+            console.warn('[iBom] [getComponentPackage] Failed to parse otherProperty JSON:', e);
+          }
+        }
+        // 如果 otherProperty 是对象
+        if (typeof comp.otherProperty === 'object') {
+          const footprintKeys = ['footprint', 'Footprint', 'FOOTPRINT', 'footprintName', 'FootprintName', 'package', 'Package', 'PKG', '封装', 'Footprint_Name'];
+          for (const key of footprintKeys) {
+            if (comp.otherProperty[key] && typeof comp.otherProperty[key] === 'string' && comp.otherProperty[key].trim()) {
+              console.log('[iBom] [getComponentPackage] Found in otherProperty (object) with key:', key, 'value:', comp.otherProperty[key]);
+              return comp.otherProperty[key].trim();
+            }
+          }
+        }
+      }
+
+      // 备用方案：尝试直接从组件属性获取
+      if (comp.footprint && typeof comp.footprint === 'string' && comp.footprint.trim()) {
+        console.log('[iBom] [getComponentPackage] Using comp.footprint:', comp.footprint);
+        return comp.footprint.trim();
+      }
+      if (comp.footprintName && typeof comp.footprintName === 'string' && comp.footprintName.trim()) {
+        console.log('[iBom] [getComponentPackage] Using comp.footprintName:', comp.footprintName);
+        return comp.footprintName.trim();
+      }
+      if (comp.package && typeof comp.package === 'string' && comp.package.trim()) {
+        console.log('[iBom] [getComponentPackage] Using comp.package:', comp.package);
+        return comp.package.trim();
+      }
+
+      console.log('[iBom] [getComponentPackage] Returning unknown');
+      return 'unknown';
+    }
+
+    // 解析 BOM 数据
+    function parseBom(components) {
+      const bomMap = new Map();
+      const flatList = [];
+      let frontCount = 0, backCount = 0;
+
+      components.forEach(comp => {
+        const isTop = comp.layer === 1 || comp.layer === 11 || comp.layer === 'F';
+        if (isTop) frontCount++; else backCount++;
+
+        const value = getComponentValue(comp);
+        const pkg = getComponentPackage(comp);
+        const ref = comp.ref || comp.designator || 'unknown';
+
+        // 扁平数据 - 每个元件一行
+        flatList.push({
+          id: `flat-${ref}`,
+          designators: [ref],
+          value: value,
+          package: pkg,
+          count: 1,
+          layer: isTop ? 'F' : 'B',
+          layerText: isTop ? '顶层' : '底层',
+          rawComponent: comp,
+          isFlat: true
+        });
+
+        // 聚合数据 - 相同值和封装的元件合并
+        const key = `${value}+${pkg}`;
+        if (!bomMap.has(key)) {
+          bomMap.set(key, {
+            value: value,
+            package: pkg,
+            designators: [],
+            layer: isTop ? 'F' : 'B',
+            hasTop: isTop,
+            hasBottom: !isTop,
+            rawComponent: comp
+          });
+        }
+        const item = bomMap.get(key);
+        if (!item.designators.includes(ref)) item.designators.push(ref);
+        // 记录是否有顶层和底层的元件
+        if (isTop) item.hasTop = true;
+        else item.hasBottom = true;
+      });
+
+      return {
+        bomList: Array.from(bomMap.values()).map((item, i) => ({
+          id: i,
+          ...item,
+          count: item.designators.length,
+          isFlat: false,
+          // 根据是否有顶层和底层元件生成层文本
+          layerText: (item.hasTop && item.hasBottom) ? '顶层/底层' : (item.hasTop ? '顶层' : '底层')
+        })),
+        flatList,
+        stats: { front: frontCount, back: backCount, total: components.length }
+      };
+    }
+
+    // 渲染 BOM 表格
+    function renderBomTable(bomList) {
+      const tbody = document.getElementById('bomBody');
+      if (!tbody) {
+        return;
+      }
+      tbody.innerHTML = '';
+      document.getElementById('bomCount').textContent = bomList.length;
+
+      // 应用搜索过滤 - 过滤全部内容（位号、值、封装、层），大小写不敏感
+      const query = state.searchQuery.toLowerCase();
+      const filteredList = query
+        ? bomList.filter(item => {
+            const desText = item.designators.join(' ').toLowerCase();
+            const valueText = item.value.toLowerCase();
+            const packageText = item.package.toLowerCase();
+            const layerText = item.layerText.toLowerCase();
+            // 模糊匹配：搜索词包含在位号、值、封装或层中
+            return desText.includes(query) || valueText.includes(query) || packageText.includes(query) || layerText.includes(query);
+          })
+        : bomList;
+
+      // 位号过滤 - 大小写不敏感，支持多个位号
+      const highlightQuery = state.highlightQuery.trim().toLowerCase();
+      const highlightSet = highlightQuery
+        ? new Set(highlightQuery.split(/[\s,,;]+/).map(s => s.trim()).filter(s => s))
+        : new Set();
+
+      // 清除之前的高亮，准备重新应用
+      clearHighlightExcept(state.selectedRow?.designators || []);
+
+      // 收集当前需要高亮的位号
+      const currentHighlightSet = new Set(state.selectedRow?.designators || []);
+
+      filteredList.forEach((item) => {
+        const tr = document.createElement('tr');
+        tr.dataset.id = item.id;
+
+        const desText = item.designators.join(', ');
+        
+        // 检查是否需要高亮位号（大小写不敏感的部分匹配）
+        const needsHighlight = highlightQuery && item.designators.some(des => 
+          highlightSet.has(des.toLowerCase())
+        );
+        
+        // 如果是过滤模式，隐藏不匹配的行
+        const shouldHide = state.highlightFilterMode && highlightQuery && !needsHighlight;
+        if (shouldHide) {
+          tr.style.display = 'none';
+        }
+        
+        // 收集高亮位号用于 PCB 预览
+        if (needsHighlight) {
+          item.designators.forEach(des => currentHighlightSet.add(des));
+        }
+
+        // 构建单元格 HTML，对过滤全部的关键字进行高亮
+        const desHtml = query ? highlightKeyword(desText, query) : desText;
+        const valueHtml = query ? highlightKeyword(item.value, query) : item.value;
+        const packageHtml = query ? highlightKeyword(item.package, query) : item.package;
+        const layerHtml = query ? highlightKeyword(item.layerText, query) : item.layerText;
+        
+        // 层列字体颜色
+        const layerClass = item.layer === 'F' ? 'layer-top' : 'layer-bottom';
+
+        tr.innerHTML = `
+          <td><input type="checkbox" class="bom-check" data-id="${item.id}"></td>
+          <td title="${desText}">${desHtml}</td>
+          <td title="${item.value}">${valueHtml}</td>
+          <td title="${item.package}">${packageHtml}</td>
+          <td>${item.count}</td>
+          <td class="${layerClass}">${layerHtml}</td>
+        `;
+
+        // 高亮行背景
+        if (needsHighlight) {
+          tr.classList.add('highlight');
+        }
+
+        tr.addEventListener('click', e => {
+          if (e.target.type !== 'checkbox') selectRow(item);
+        });
+
+        tr.querySelector('.bom-check').addEventListener('change', e => {
+          if (e.target.checked) {
+            state.checkedItems.add(item.id);
+            tr.classList.add('checked');
+          } else {
+            state.checkedItems.delete(item.id);
+            tr.classList.remove('checked');
+          }
+        });
+
+        tbody.appendChild(tr);
+      });
+
+      // 更新 PCB 高亮
+      highlightComponents(Array.from(currentHighlightSet));
+    }
+
+    // 高亮文本中的关键字
+    function highlightKeyword(text, keyword) {
+      if (!keyword) return text;
+      const regex = new RegExp(`(${escapeRegExp(keyword)})`, 'gi');
+      return String(text).replace(regex, '<mark class="keyword-highlight">$1</mark>');
+    }
+
+    // 转义正则表达式特殊字符
+    function escapeRegExp(string) {
+      return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    // 选择行
+    function selectRow(item) {
+      document.querySelectorAll('.bom-table tr.selected').forEach(tr => tr.classList.remove('selected'));
+      document.querySelectorAll('.bom-table tr.highlight').forEach(tr => tr.classList.remove('highlight'));
+
+      const tr = document.querySelector(`.bom-table tr[data-id="${item.id}"]`);
+      if (tr) {
+        tr.classList.add('selected');
+        state.selectedRow = item;
+      }
+
+      if (item.designators) {
+        item.designators.forEach(des => {
+          const row = Array.from(document.querySelectorAll('.bom-table tr')).find(r =>
+            r.cells[1]?.textContent.includes(des)
+          );
+          if (row) row.classList.add('highlight');
+        });
+      }
+
+      // 清除高亮查询
+      state.highlightQuery = '';
+      state.highlightFilterMode = false;
+      document.getElementById('highlightInput').value = '';
+
+      // 高亮元件
+      highlightComponents(item.designators);
+
+      // 根据元件所在层自动切换预览区（但不移动画布）
+      const firstDes = item.designators[0];
+      const comp = state.components.find(c =>
+        c.ref === firstDes || c.designator === firstDes
+      );
+
+      if (comp) {
+        const isTop = comp.layer === 1 || comp.layer === 11 || comp.layer === 'F';
+        const targetLayer = isTop ? 'F' : 'B';
+
+        // 如果当前层与元件所在层不同，自动切换
+        if (state.currentLayer !== targetLayer) {
+          state.currentLayer = targetLayer;
+
+          // 更新按钮状态
+          ['layerF', 'layerFB', 'layerB'].forEach(id => {
+            document.getElementById(id).classList.toggle('active', id === 'layer' + targetLayer);
+          });
+          
+          // 重新渲染
+          renderPcb(true);
+        }
+        
+        // 显示十字线标记元件中心（3 秒后消失）
+        showCrosshair(comp.x, comp.y);
+      }
+
+      document.getElementById('statusText').textContent = `选中：${item.designators.join(', ')}`;
+    }
+    
+    // 显示十字线标记
+    function showCrosshair(x, y) {
+      // 移除旧的十字线
+      const oldCrosshair = document.querySelector('.crosshair');
+      if (oldCrosshair) oldCrosshair.remove();
+      
+      // 创建十字线
+      const crosshair = document.createElement('div');
+      crosshair.className = 'crosshair';
+      
+      // 计算十字线位置（相对于 PCB 坐标）
+      const frontCanvas = document.getElementById('frontCanvas');
+      const canvasWidth = frontCanvas.width / (window.devicePixelRatio || 1);
+      const canvasHeight = frontCanvas.height / (window.devicePixelRatio || 1);
+      
+      // 将 PCB 坐标转换为 canvas 坐标
+      const screenX = (x * state.scale) + state.panOffset.x;
+      const screenY = (y * state.scale) + state.panOffset.y;
+      
+      crosshair.style.left = screenX + 'px';
+      crosshair.style.top = screenY + 'px';
+      crosshair.style.width = '200px';
+      crosshair.style.height = '200px';
+      crosshair.style.marginLeft = '-100px';
+      crosshair.style.marginTop = '-100px';
+      
+      // 添加到当前显示的 canvas 容器
+      const container = state.currentLayer === 'B' ? 
+        document.getElementById('backContainer') : 
+        document.getElementById('frontContainer');
+      container.appendChild(crosshair);
+      
+      // 3 秒后移除
+      setTimeout(() => {
+        crosshair.remove();
+      }, 3000);
+    }
+
+    // 平移画布到指定元件（保持当前缩放比例）
+    function scrollToComponent(designator) {
+      const comp = state.components.find(c => 
+        c.ref === designator || c.designator === designator
+      );
+      
+      if (!comp) return;
+
+      const x = parseFloat(comp.x) || 0;
+      const y = parseFloat(comp.y) || 0;
+
+      // 计算目标位置，使元件位于画布中心
+      const frontCanvas = document.getElementById('frontCanvas');
+      const canvasWidth = frontCanvas.width / (window.devicePixelRatio || 1);
+      const canvasHeight = frontCanvas.height / (window.devicePixelRatio || 1);
+
+      // 计算新的平移偏移量（保持当前缩放比例 state.scale）
+      state.panOffset.x = canvasWidth / 2 - x * state.scale;
+      state.panOffset.y = canvasHeight / 2 - y * state.scale;
+
+      // 使用保持变换的渲染方法
+      renderPcbWithTransform();
+    }
+
+    // 高亮元件
+    function highlightComponents(designators) {
+      state.highlightedDesignators.clear();
+      designators.forEach(des => state.highlightedDesignators.add(des));
+      renderPcb();
+    }
+
+    // 从高亮查询高亮元件（合并高亮）
+    function highlightComponentsFromHighlightQuery(designators) {
+      // 保留选中的位号，添加新的高亮位号
+      designators.forEach(des => state.highlightedDesignators.add(des));
+      renderPcb();
+    }
+
+    // 清除高亮（保留选中）
+    function clearHighlightExcept(selectedDesignators) {
+      state.highlightedDesignators.clear();
+      if (selectedDesignators) {
+        selectedDesignators.forEach(des => state.highlightedDesignators.add(des));
+      }
+    }
+
+    // 绘制焊盘轮廓（根据形状和尺寸自动计算）
+    function drawPadOutline(ctx, pad, isMirrored = false) {
+      const padX = parseFloat(pad.x) || 0;
+      const padY = parseFloat(pad.y) || 0;
+      let padW = parseFloat(pad.width) || 1;
+      let padH = parseFloat(pad.height) || 1;
+      const shape = (pad.shape || 'rectangle').toLowerCase();
+      const radius = parseFloat(pad.radius) || 0;
+
+      if (padW < 0.1) padW = 1;
+      if (padH < 0.1) padH = 1;
+
+      ctx.beginPath();
+
+      if (shape === 'circle') {
+        // 圆形焊盘
+        const r = Math.max(padW, padH) / 2;
+        ctx.arc(padX, padY, r, 0, Math.PI * 2);
+      } else if (shape === 'oval' || shape === 'ellipse') {
+        // 椭圆焊盘
+        ctx.ellipse(padX, padY, padW / 2, padH / 2, 0, 0, Math.PI * 2);
+      } else if (shape === 'rectangle' || shape === 'rect') {
+        // 矩形焊盘
+        if (radius > 0) {
+          // 圆角矩形
+          const r = Math.min(radius, padW / 2, padH / 2);
+          ctx.roundRect(padX - padW / 2, padY - padH / 2, padW, padH, r);
+        } else {
+          ctx.rect(padX - padW / 2, padY - padH / 2, padW, padH);
+        }
+      } else if (shape === 'roundrect') {
+        // 圆角矩形
+        const r = Math.min(padW / 4, padH / 4);
+        ctx.roundRect(padX - padW / 2, padY - padH / 2, padW, padH, r);
+      } else {
+        // 默认矩形
+        ctx.rect(padX - padW / 2, padY - padH / 2, padW, padH);
+      }
+
+      ctx.closePath();
+    }
+
+    // 绘制元件（使用 bbox 和真实焊盘轮廓）
+    function drawComponent(ctx, comp, x, y, rotation, isTop, isMirrored = false) {
+      ctx.save();
+      
+      // 平移到元件位置
+      ctx.translate(x, y);
+      
+      // 应用旋转（确保角度与 PCB 一致）
+      const rot = parseFloat(rotation) || 0;
+      ctx.rotate(rot * Math.PI / 180);
+
+      const ref = comp.ref || comp.designator || '';
+
+      // 使用 bbox 获取实际尺寸
+      let pkgWidth = 20, pkgHeight = 15;
+      let bboxOffsetX = 0, bboxOffsetY = 0;
+
+      if (comp.bbox) {
+        const bbox = comp.bbox;
+        if (bbox.width) pkgWidth = bbox.width;
+        if (bbox.height) pkgHeight = bbox.height;
+        // 使用 bbox 中心点偏移
+        if (bbox.x !== undefined && bbox.y !== undefined) {
+          bboxOffsetX = (bbox.x + bbox.width / 2) - x;
+          bboxOffsetY = (bbox.y + bbox.height / 2) - y;
+        }
+      }
+
+      pkgWidth = Math.max(pkgWidth, 5);
+      pkgHeight = Math.max(pkgHeight, 3);
+
+      // 如果是底面镜像，翻转 X 轴
+      if (isMirrored) {
+        ctx.scale(-1, 1);
+      }
+
+      // 绘制元件本体轮廓（无填充）
+      ctx.strokeStyle = isTop ? '#2196f3' : '#ff9800';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(-pkgWidth / 2, -pkgHeight / 2, pkgWidth, pkgHeight);
+
+      // 高亮效果
+      const needsHighlight = state.highlightedDesignators.has(ref);
+      if (needsHighlight) {
+        ctx.strokeStyle = '#ff5722';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(-pkgWidth / 2 - 3, -pkgHeight / 2 - 3, pkgWidth + 6, pkgHeight + 6);
+      }
+
+      // 存储引用用于高亮
+      const layer = isTop ? 'F' : 'B';
+      if (ref) {
+        state.componentElements[layer][ref] = {
+          x, y, rotation: rot,
+          width: pkgWidth,
+          height: pkgHeight,
+          isTop,
+          isHighlighted: needsHighlight
+        };
+      }
+
+      // 绘制焊盘轮廓
+      if (state.showPads && comp.pads && comp.pads.length > 0) {
+        ctx.strokeStyle = '#c9c942';
+        ctx.lineWidth = 0.5;
+        ctx.fillStyle = 'rgba(201, 201, 66, 0.3)';
+
+        comp.pads.forEach(pad => {
+          drawPadOutline(ctx, pad, isMirrored);
+          ctx.fill();
+          ctx.stroke();
+
+          // 第一引脚标记
+          if (state.highlightPin1 && (pad.number === '1' || pad.number === 1 || pad.number === '1')) {
+            ctx.strokeStyle = '#ff0000';
+            ctx.lineWidth = 1.5;
+            drawPadOutline(ctx, pad, isMirrored);
+            ctx.stroke();
+          }
+        });
+      }
+
+      // 位号
+      if (state.showRefs && ref) {
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 10px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        // 镜像时文字也翻转
+        if (isMirrored) {
+          ctx.scale(-1, 1);
+        }
+        ctx.fillText(ref, 0, -pkgHeight / 2 - 10);
+      }
+
+      // 值
+      if (state.showValues) {
+        const val = comp.value || comp.name || '';
+        if (val) {
+          ctx.fillStyle = '#aaa';
+          ctx.font = '8px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(val, 0, pkgHeight / 2 + 10);
+        }
+      }
+
+      ctx.restore();
+    }
+
+    // 绘制 PCB 板框（使用真实的板框数据）
+    function drawBoardOutline(ctx, boardOutline, components, pad = 50) {
+      // 如果有真实的板框数据，使用板框数据
+      if (boardOutline && boardOutline.pointArr && boardOutline.pointArr.length > 0) {
+        ctx.strokeStyle = '#404040';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        
+        const points = boardOutline.pointArr;
+        if (points.length > 0) {
+          ctx.moveTo(points[0].x, points[0].y);
+          for (let i = 1; i < points.length; i++) {
+            ctx.lineTo(points[i].x, points[i].y);
+          }
+          // 闭合板框
+          ctx.closePath();
+        }
+        
+        ctx.stroke();
+        
+        // 计算板框边界
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        points.forEach(p => {
+          if (p.x < minX) minX = p.x;
+          if (p.y < minY) minY = p.y;
+          if (p.x > maxX) maxX = p.x;
+          if (p.y > maxY) maxY = p.y;
+        });
+        
+        return { 
+          x: minX - pad, 
+          y: minY - pad, 
+          width: maxX - minX + pad * 2, 
+          height: maxY - minY + pad * 2 
+        };
+      }
+      
+      // 如果没有板框数据，使用元件边界计算
+      if (!components || components.length === 0) {
+        return { x: -50, y: -50, width: 100, height: 100 };
+      }
+
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      components.forEach(comp => {
+        const x = parseFloat(comp.x) || 0;
+        const y = parseFloat(comp.y) || 0;
+        // 考虑元件尺寸
+        let w = 10, h = 10;
+        if (comp.bbox) {
+          w = comp.bbox.width || 10;
+          h = comp.bbox.height || 10;
+        }
+        if (x - w / 2 < minX) minX = x - w / 2;
+        if (y - h / 2 < minY) minY = y - h / 2;
+        if (x + w / 2 > maxX) maxX = x + w / 2;
+        if (y + h / 2 > maxY) maxY = y + h / 2;
+      });
+
+      const boardX = minX - pad;
+      const boardY = minY - pad;
+      const boardW = maxX - minX + pad * 2;
+      const boardH = maxY - minY + pad * 2;
+
+      ctx.strokeStyle = '#404040';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(boardX, boardY, boardW, boardH);
+
+      return { x: boardX, y: boardY, width: boardW, height: boardH };
+    }
+
+    // 渲染 PCB - 只在初始化或窗口大小改变时计算视图边界
+    function renderPcb(keepTransform = false) {
+      const frontCanvas = document.getElementById('frontCanvas');
+      const backCanvas = document.getElementById('backCanvas');
+      const frontCtx = frontCanvas.getContext('2d');
+      const backCtx = backCanvas.getContext('2d');
+
+      state.componentElements = { F: {}, B: {} };
+
+      function resizeCanvas(canvas) {
+        const container = canvas.parentElement;
+        // 即使容器隐藏，也要获取其应有的尺寸
+        const rect = container.getBoundingClientRect();
+        const dpr = window.devicePixelRatio || 1;
+        
+        // 如果容器隐藏，使用父容器的尺寸
+        if (rect.width === 0 || rect.height === 0) {
+          const parentRect = container.parentElement.getBoundingClientRect();
+          canvas.width = parentRect.width * dpr;
+          canvas.height = parentRect.height * dpr;
+          canvas.style.width = parentRect.width + 'px';
+          canvas.style.height = parentRect.height + 'px';
+        } else {
+          canvas.width = rect.width * dpr;
+          canvas.height = rect.height * dpr;
+          canvas.style.width = rect.width + 'px';
+          canvas.style.height = rect.height + 'px';
+        }
+      }
+      resizeCanvas(frontCanvas);
+      resizeCanvas(backCanvas);
+
+      // 只在需要时重新计算视图边界（不保持变换时）
+      if (!keepTransform) {
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        state.components.forEach(comp => {
+          const x = parseFloat(comp.x) || 0;
+          const y = parseFloat(comp.y) || 0;
+          if (x < minX) minX = x;
+          if (y < minY) minY = y;
+          if (x > maxX) maxX = x;
+          if (y > maxY) maxY = y;
+        });
+
+        const pad = 50;
+        const contentWidth = maxX - minX + pad * 2 || 500;
+        const contentHeight = maxY - minY + pad * 2 || 500;
+
+        // 存储视图边界
+        state.viewBox = { x: minX - pad, y: minY - pad, width: contentWidth, height: contentHeight };
+
+        let scaleX, scaleY, scale;
+        const canvasWidth = frontCanvas.width / (window.devicePixelRatio || 1);
+        const canvasHeight = frontCanvas.height / (window.devicePixelRatio || 1);
+
+        if (state.currentLayer === 'FB') {
+          const singleCanvasHeight = canvasHeight / 2;
+          scaleX = canvasWidth / contentWidth;
+          scaleY = singleCanvasHeight / contentHeight;
+          scale = Math.min(scaleX, scaleY) * 0.95;
+        } else {
+          scaleX = canvasWidth / contentWidth;
+          scaleY = canvasHeight / contentHeight;
+          scale = Math.min(scaleX, scaleY) * 0.95;
+        }
+
+        state.scale = scale;
+
+        const offsetX = (canvasWidth - contentWidth * scale) / 2 - minX * scale;
+        const offsetY = (canvasHeight - contentHeight * scale) / 2 - minY * scale;
+        state.panOffset = { x: offsetX, y: offsetY };
+      }
+
+      function drawLayer(ctx, canvas, isTop, isMirrored = false) {
+        const dpr = window.devicePixelRatio || 1;
+        const canvasW = canvas.width / dpr;
+        const canvasH = canvas.height / dpr;
+
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, canvasW, canvasH);
+        
+        // 使用状态变量获取背景色
+        const bgColor = state.darkMode ? 'rgb(38, 44, 48)' : '#f0f0f0';
+        ctx.fillStyle = bgColor;
+        ctx.fillRect(0, 0, canvasW, canvasH);
+
+        // 使用保存的变换参数
+        ctx.translate(state.panOffset.x, state.panOffset.y);
+        ctx.scale(state.scale, state.scale);
+
+        // 绘制 PCB 板框
+        drawBoardOutline(ctx, state.boardOutline, state.components, 50);
+
+        // 如果是底面镜像，翻转整个画布
+        if (isMirrored) {
+          // 获取板框中心
+          const boardCenterX = state.viewBox.x + state.viewBox.width / 2;
+          ctx.translate(boardCenterX, 0);
+          ctx.scale(-1, 1);
+          ctx.translate(-boardCenterX, 0);
+        }
+
+        // 绘制元件
+        state.components.forEach(comp => {
+          const compIsTop = comp.layer === 1 || comp.layer === 11 || comp.layer === 'F';
+          if (compIsTop === isTop) {
+            const x = parseFloat(comp.x) || 0;
+            const y = parseFloat(comp.y) || 0;
+            const rot = parseFloat(comp.rotation) || 0;
+            drawComponent(ctx, comp, x, y, rot, isTop, isMirrored);
+          }
+        });
+
+        ctx.restore();
+      }
+
+      const frontContainer = document.getElementById('frontContainer');
+      const backContainer = document.getElementById('backContainer');
+
+      // 先隐藏所有容器，确保正确清除显示状态
+      frontContainer.classList.add('hidden');
+      backContainer.classList.add('hidden');
+      
+      // 强制浏览器重排，确保隐藏生效
+      void frontContainer.offsetWidth;
+      void backContainer.offsetWidth;
+      
+      // 清空两个 canvas
+      frontCtx.clearRect(0, 0, frontCanvas.width, frontCanvas.height);
+      backCtx.clearRect(0, 0, backCanvas.width, backCanvas.height);
+
+      // 根据当前层设置显示对应的容器
+      if (state.currentLayer === 'F') {
+        frontContainer.classList.remove('hidden');
+        // 确保 backContainer 完全隐藏
+        backContainer.style.display = 'none';
+        frontContainer.style.display = 'flex';
+        drawLayer(frontCtx, frontCanvas, true, false);
+      } else if (state.currentLayer === 'B') {
+        backContainer.classList.remove('hidden');
+        // 确保 frontContainer 完全隐藏
+        frontContainer.style.display = 'none';
+        backContainer.style.display = 'flex';
+        // 底面预览时进行左右镜像翻转
+        drawLayer(backCtx, backCanvas, false, true);
+      } else {
+        // 双面显示
+        frontContainer.classList.remove('hidden');
+        backContainer.classList.remove('hidden');
+        frontContainer.style.display = 'flex';
+        backContainer.style.display = 'flex';
+        drawLayer(frontCtx, frontCanvas, true, false);
+        // 底面预览时进行左右镜像翻转
+        drawLayer(backCtx, backCanvas, false, true);
+      }
+
+      const frontCount = state.components.filter(c => c.layer === 1 || c.layer === 11 || c.layer === 'F').length;
+      const backCount = state.components.length - frontCount;
+      document.getElementById('layerInfo').textContent = `F: ${frontCount} | B: ${backCount}`;
+    }
+
+    // 初始化列宽拖拽 - 使用指示线方式
+    function initColumnResizer() {
+      const ths = document.querySelectorAll('.bom-table th');
+      let resizeIndicator = null;
+      let currentTh = null;
+      let startX = 0;
+      let startWidth = 0;
+
+      // 设置初始列宽
+      ths.forEach(th => {
+        if (th.classList.contains('col-check')) th.style.width = '30px';
+        else if (th.classList.contains('col-designators')) th.style.width = state.columnWidths.designators + 'px';
+        else if (th.classList.contains('col-value')) th.style.width = state.columnWidths.value + 'px';
+        else if (th.classList.contains('col-package')) th.style.width = state.columnWidths.package + 'px';
+        else if (th.classList.contains('col-quantity')) th.style.width = state.columnWidths.quantity + 'px';
+        else if (th.classList.contains('col-layer')) th.style.width = state.columnWidths.layer + 'px';
+      });
+
+      ths.forEach(th => {
+        const resizer = document.createElement('div');
+        resizer.className = 'resizer';
+        th.appendChild(resizer);
+
+        let isResizing = false;
+
+        resizer.addEventListener('mousedown', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+
+          isResizing = true;
+          currentTh = th;
+          startX = e.pageX;
+          startWidth = th.offsetWidth;
+
+          // 创建拖动指示线
+          resizeIndicator = document.createElement('div');
+          resizeIndicator.className = 'column-resize-indicator';
+          resizeIndicator.style.left = (startX - document.body.getBoundingClientRect().left) + 'px';
+          document.body.appendChild(resizeIndicator);
+
+          resizer.classList.add('resizing');
+          document.body.style.cursor = 'col-resize';
+          document.body.style.userSelect = 'none';
+        });
+
+        document.addEventListener('mousemove', (e) => {
+          if (!isResizing || !resizeIndicator) return;
+          e.preventDefault();
+
+          // 移动指示线
+          const currentX = e.pageX;
+          resizeIndicator.style.left = (currentX - document.body.getBoundingClientRect().left) + 'px';
+        });
+
+        document.addEventListener('mouseup', (e) => {
+          if (!isResizing) return;
+
+          // 计算新宽度
+          const diff = e.pageX - startX;
+          const newWidth = Math.max(30, startWidth + diff);
+
+          // 更新列宽状态
+          if (currentTh) {
+            if (currentTh.classList.contains('col-designators')) {
+              state.columnWidths.designators = newWidth;
+            } else if (currentTh.classList.contains('col-value')) {
+              state.columnWidths.value = newWidth;
+            } else if (currentTh.classList.contains('col-package')) {
+              state.columnWidths.package = newWidth;
+            } else if (currentTh.classList.contains('col-quantity')) {
+              state.columnWidths.quantity = newWidth;
+            } else if (currentTh.classList.contains('col-layer')) {
+              state.columnWidths.layer = newWidth;
+            }
+            currentTh.style.width = newWidth + 'px';
+          }
+
+          // 清理指示线
+          if (resizeIndicator) {
+            resizeIndicator.remove();
+            resizeIndicator = null;
+          }
+          if (currentTh) {
+            currentTh.querySelector('.resizer')?.classList.remove('resizing');
+            currentTh = null;
+          }
+
+          isResizing = false;
+          document.body.style.cursor = '';
+          document.body.style.userSelect = '';
+        });
+      });
+    }
+
+    // 初始化分隔线拖动
+    function initSplitter() {
+      const splitter = document.getElementById('splitter');
+      const bomPanel = document.querySelector('.bom-panel');
+      const previewPanel = document.querySelector('.preview-panel');
+      
+      if (!splitter || !bomPanel || !previewPanel) return;
+
+      let isDragging = false;
+      let startX = 0;
+      let startWidth = 0;
+
+      splitter.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        startX = e.pageX;
+        startWidth = bomPanel.offsetWidth;
+        splitter.classList.add('dragging');
+        document.body.style.cursor = 'col-resize';
+        document.body.style.userSelect = 'none';
+        e.preventDefault();
+      });
+
+      document.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        e.preventDefault();
+
+        const diff = e.pageX - startX;
+        const newWidth = Math.max(300, Math.min(startWidth + diff, window.innerWidth - 300));
+
+        bomPanel.style.width = newWidth + 'px';
+      });
+
+      document.addEventListener('mouseup', () => {
+        if (!isDragging) return;
+        isDragging = false;
+        splitter.classList.remove('dragging');
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+        
+        // 触发窗口大小改变事件，更新 canvas 尺寸
+        window.dispatchEvent(new Event('resize'));
+      });
+    }
+
+    // 初始化 Canvas 平移和缩放
+    function initCanvasPanZoom() {
+      const containers = ['frontContainer', 'backContainer'].map(id => document.getElementById(id));
+      
+      containers.forEach(container => {
+        if (!container) return;
+        
+        const canvas = container.querySelector('canvas');
+        if (!canvas) return;
+        
+        let isDragging = false;
+        let startX, startY;
+        let startPanX = 0, startPanY = 0;
+        
+        // 鼠标按下 - 开始平移
+        canvas.addEventListener('mousedown', (e) => {
+          isDragging = true;
+          startX = e.clientX;
+          startY = e.clientY;
+          startPanX = state.panOffset.x;
+          startPanY = state.panOffset.y;
+          canvas.style.cursor = 'grabbing';
+          e.preventDefault();
+        });
+        
+        // 鼠标移动 - 平移
+        document.addEventListener('mousemove', (e) => {
+          if (!isDragging) return;
+          
+          const dx = e.clientX - startX;
+          const dy = e.clientY - startY;
+          
+          state.panOffset.x = startPanX + dx;
+          state.panOffset.y = startPanY + dy;
+          
+          // 重新绘制
+          renderPcbWithTransform();
+        });
+        
+        // 鼠标释放 - 结束平移
+        document.addEventListener('mouseup', () => {
+          isDragging = false;
+          if (canvas) canvas.style.cursor = 'grab';
+        });
+        
+        // 滚轮缩放 - 以鼠标位置为中心
+        canvas.addEventListener('wheel', (e) => {
+          e.preventDefault();
+          
+          const rect = canvas.getBoundingClientRect();
+          const mouseX = e.clientX - rect.left;
+          const mouseY = e.clientY - rect.top;
+          
+          // 计算缩放因子
+          const delta = -e.deltaY;
+          const zoomFactor = delta > 0 ? 1.1 : 0.9;
+          
+          // 限制缩放范围
+          const newScale = Math.max(0.1, Math.min(20, state.scale * zoomFactor));
+          
+          if (newScale === state.scale) return;
+          
+          // 计算鼠标位置在 PCB 坐标中的位置
+          const pcbX = (mouseX - state.panOffset.x) / state.scale;
+          const pcbY = (mouseY - state.panOffset.y) / state.scale;
+          
+          // 更新缩放
+          state.scale = newScale;
+          
+          // 调整平移，使鼠标位置保持在同一 PCB 坐标
+          state.panOffset.x = mouseX - pcbX * newScale;
+          state.panOffset.y = mouseY - pcbY * newScale;
+          
+          // 重新绘制
+          renderPcbWithTransform();
+        }, { passive: false });
+        
+        canvas.style.cursor = 'grab';
+        
+        // 右键菜单 - 重置画布
+        canvas.addEventListener('contextmenu', (e) => {
+          e.preventDefault();
+          
+          // 移除旧的菜单
+          const oldMenu = document.querySelector('.context-menu');
+          if (oldMenu) oldMenu.remove();
+          
+          // 创建右键菜单
+          const menu = document.createElement('div');
+          menu.className = 'context-menu';
+          menu.style.left = e.clientX + 'px';
+          menu.style.top = e.clientY + 'px';
+          
+          const menuItem = document.createElement('div');
+          menuItem.className = 'context-menu-item';
+          menuItem.textContent = '🔄 重置画布';
+          menuItem.addEventListener('click', () => {
+            resetView();
+            menu.remove();
+          });
+          
+          menu.appendChild(menuItem);
+          document.body.appendChild(menu);
+          
+          // 点击其他地方关闭菜单
+          const closeMenu = () => {
+            menu.remove();
+            document.removeEventListener('click', closeMenu);
+          };
+          setTimeout(() => {
+            document.addEventListener('click', closeMenu);
+          }, 100);
+        });
+      });
+    }
+
+    // 使用当前变换状态重新渲染 PCB（保持缩放和平移）
+    function renderPcbWithTransform() {
+      const frontCanvas = document.getElementById('frontCanvas');
+      const backCanvas = document.getElementById('backCanvas');
+      const frontCtx = frontCanvas.getContext('2d');
+      const backCtx = backCanvas.getContext('2d');
+
+      state.componentElements = { F: {}, B: {} };
+
+      const dpr = window.devicePixelRatio || 1;
+      const canvasWidth = frontCanvas.width / dpr;
+      const canvasHeight = frontCanvas.height / dpr;
+
+      const { x: minX, y: minY, width: contentWidth, height: contentHeight } = state.viewBox;
+      const pad = 50;
+
+      function drawLayer(ctx, canvas, isTop, isMirrored = false) {
+        const canvasW = canvas.width / dpr;
+        const canvasH = canvas.height / dpr;
+
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, canvasW, canvasH);
+        
+        // 使用状态变量获取背景色
+        const bgColor = state.darkMode ? 'rgb(38, 44, 48)' : '#f0f0f0';
+        ctx.fillStyle = bgColor;
+        ctx.fillRect(0, 0, canvasW, canvasH);
+        
+        ctx.translate(state.panOffset.x, state.panOffset.y);
+        ctx.scale(state.scale, state.scale);
+
+        // 绘制 PCB 板框
+        drawBoardOutline(ctx, state.boardOutline, state.components, 50);
+
+        // 如果是底面镜像，翻转整个画布
+        if (isMirrored) {
+          const boardCenterX = minX + contentWidth / 2;
+          ctx.translate(boardCenterX, 0);
+          ctx.scale(-1, 1);
+          ctx.translate(-boardCenterX, 0);
+        }
+
+        // 绘制元件
+        state.components.forEach(comp => {
+          const compIsTop = comp.layer === 1 || comp.layer === 11 || comp.layer === 'F';
+          if (compIsTop === isTop) {
+            const x = parseFloat(comp.x) || 0;
+            const y = parseFloat(comp.y) || 0;
+            const rot = parseFloat(comp.rotation) || 0;
+            drawComponent(ctx, comp, x, y, rot, isTop, isMirrored);
+          }
+        });
+
+        ctx.restore();
+      }
+
+      const frontContainer = document.getElementById('frontContainer');
+      const backContainer = document.getElementById('backContainer');
+
+      // 先隐藏所有容器，确保正确清除显示状态
+      frontContainer.classList.add('hidden');
+      backContainer.classList.add('hidden');
+      
+      // 强制浏览器重排，确保隐藏生效
+      void frontContainer.offsetWidth;
+      void backContainer.offsetWidth;
+      
+      // 清空两个 canvas
+      frontCtx.clearRect(0, 0, frontCanvas.width, frontCanvas.height);
+      backCtx.clearRect(0, 0, backCanvas.width, backCanvas.height);
+
+      // 根据当前层设置显示对应的容器
+      if (state.currentLayer === 'F') {
+        frontContainer.classList.remove('hidden');
+        backContainer.style.display = 'none';
+        frontContainer.style.display = 'flex';
+        drawLayer(frontCtx, frontCanvas, true, false);
+      } else if (state.currentLayer === 'B') {
+        backContainer.classList.remove('hidden');
+        frontContainer.style.display = 'none';
+        backContainer.style.display = 'flex';
+        // 底面预览时进行左右镜像翻转
+        drawLayer(backCtx, backCanvas, false, true);
+      } else {
+        // 双面显示
+        frontContainer.classList.remove('hidden');
+        backContainer.classList.remove('hidden');
+        frontContainer.style.display = 'flex';
+        backContainer.style.display = 'flex';
+        drawLayer(frontCtx, frontCanvas, true, false);
+        // 底面预览时进行左右镜像翻转
+        drawLayer(backCtx, backCanvas, false, true);
+      }
+
+      const frontCount = state.components.filter(c => c.layer === 1 || c.layer === 11 || c.layer === 'F').length;
+      const backCount = state.components.length - frontCount;
+      document.getElementById('layerInfo').textContent = `F: ${frontCount} | B: ${backCount}`;
+    }
+
+    // 自动适应画布尺寸
+    function fitToContent() {
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      state.components.forEach(comp => {
+        const x = parseFloat(comp.x) || 0;
+        const y = parseFloat(comp.y) || 0;
+        if (x < minX) minX = x;
+        if (y < minY) minY = y;
+        if (x > maxX) maxX = x;
+        if (y > maxY) maxY = y;
+      });
+
+      const pad = 50;
+      const contentWidth = maxX - minX + pad * 2 || 500;
+      const contentHeight = maxY - minY + pad * 2 || 500;
+
+      // 存储视图边界
+      state.viewBox = { x: minX - pad, y: minY - pad, width: contentWidth, height: contentHeight };
+
+      const frontCanvas = document.getElementById('frontCanvas');
+      const canvasWidth = frontCanvas.width / (window.devicePixelRatio || 1);
+      const canvasHeight = frontCanvas.height / (window.devicePixelRatio || 1);
+
+      let scaleX, scaleY, scale;
+      if (state.currentLayer === 'FB') {
+        const singleCanvasHeight = canvasHeight / 2;
+        scaleX = canvasWidth / contentWidth;
+        scaleY = singleCanvasHeight / contentHeight;
+        scale = Math.min(scaleX, scaleY) * 0.95;
+      } else {
+        scaleX = canvasWidth / contentWidth;
+        scaleY = canvasHeight / contentHeight;
+        scale = Math.min(scaleX, scaleY) * 0.95;
+      }
+
+      state.scale = scale;
+
+      const offsetX = (canvasWidth - contentWidth * scale) / 2 - minX * scale;
+      const offsetY = (canvasHeight - contentHeight * scale) / 2 - minY * scale;
+      state.panOffset = { x: offsetX, y: offsetY };
+
+      renderPcb(true);
+    }
+    
+    // 重置画布视图
+    function resetView() {
+      fitToContent();
+    }
+
+    // 导出 CSV 文件
+    function exportToCsv() {
+      // 获取当前显示的数据（聚合或列表）
+      const currentData = state.aggregateMode ? state.bomData : state.flatBomData;
+      
+      // 构建 CSV 内容（使用逗号分隔）
+      let csv = '\uFEFF'; // BOM for UTF-8
+      csv += '位号，值，封装，数量，层\n';
+      
+      currentData.forEach(item => {
+        const desText = item.designators.join(';');
+        const value = item.value.replace(/"/g, '""');  // 转义双引号
+        const package_ = item.package.replace(/"/g, '""');
+        csv += `"${desText}","${value}","${package_}",${item.count},"${item.layerText}"\n`;
+      });
+      
+      // 生成文件名
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+      const filename = `BOM_${timestamp}.csv`;
+      
+      // 创建下载链接
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }
+
+    // 初始化
+    async function init() {
+      try {
+        // 等待 eda API 可用
+        await waitForEda();
+        
+        document.getElementById('statusText').textContent = '正在加载...';
+
+        const data = await fetchPcbData();
+        state.components = data.components || [];
+        state.boardOutline = data.boardOutline || null;
+
+        const { bomList, flatList, stats } = parseBom(state.components);
+        state.bomData = bomList;
+        state.flatBomData = flatList;
+
+        // 根据 aggregateMode 决定使用哪个数据源
+        const currentData = state.aggregateMode ? bomList : flatList;
+        renderBomTable(currentData);
+        
+        // 初始化时根据 darkMode 设置 canvas 容器背景
+        updateCanvasBackground();
+        renderPcb();
+        initColumnResizer();
+        initCanvasPanZoom();
+        initSplitter();
+
+        document.getElementById('compCount').textContent = stats.total;
+        document.getElementById('statusText').textContent = `加载完成：${stats.total} 个元件，${bomList.length} 种物料`;
+      } catch (e) {
+        console.error('[iBom] Init error:', e);
+        document.getElementById('statusText').textContent = '加载失败：' + e.message;
+      }
+    }
+    
+    // 更新 canvas 容器背景色
+    function updateCanvasBackground() {
+      const containers = document.querySelectorAll('.canvas-container');
+      containers.forEach(container => {
+        if (state.darkMode) {
+          container.style.backgroundColor = 'rgb(38, 44, 48)';
+          container.style.background = 'rgb(38, 44, 48)';
+        } else {
+          container.style.backgroundColor = '#f0f0f0';
+          container.style.background = '#f0f0f0';
+        }
+      });
+    }
+    
+    // 等待 DOM 加载完成后初始化
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => {
+        init();
+      });
+    } else {
+      init();
+    }
+    
+    // ========== 事件绑定 ==========
+    document.getElementById('darkModeBtn').addEventListener('click', function() {
+      state.darkMode = !state.darkMode;
+      
+      // 使用 body.dark 而不是 .dark
+      if (state.darkMode) {
+        document.body.classList.add('dark');
+      } else {
+        document.body.classList.remove('dark');
+      }
+      
+      this.textContent = state.darkMode ? '☀️' : '🌙';
+      this.title = state.darkMode ? '切换到亮色模式' : '切换到暗色模式';
+      
+      // 更新 canvas 容器背景
+      updateCanvasBackground();
+      
+      // 重新渲染 PCB 以应用新的背景色
+      renderPcb(true);
+    });
+    
+    // 监听主题变化，更新 canvas 背景
+    // 注意：现在通过 updateCanvasBackground() 直接更新，不再需要 MutationObserver
+
+    document.getElementById('showRefs').addEventListener('change', e => { state.showRefs = e.target.checked; renderPcb(true); });
+    document.getElementById('showValues').addEventListener('change', e => { state.showValues = e.target.checked; renderPcb(true); });
+    document.getElementById('showPads').addEventListener('change', e => { state.showPads = e.target.checked; renderPcb(true); });
+    document.getElementById('highlightPin1').addEventListener('change', e => { state.highlightPin1 = e.target.checked; renderPcb(true); });
+
+    document.getElementById('layerF').addEventListener('click', () => {
+      state.currentLayer = 'F';
+      ['layerF', 'layerFB', 'layerB'].forEach(id => document.getElementById(id).classList.toggle('active', id === 'layerF'));
+      fitToContent();  // 自动适应画布尺寸
+    });
+
+    document.getElementById('layerFB').addEventListener('click', () => {
+      state.currentLayer = 'FB';
+      ['layerF', 'layerFB', 'layerB'].forEach(id => document.getElementById(id).classList.toggle('active', id === 'layerFB'));
+      fitToContent();  // 自动适应画布尺寸
+    });
+
+    document.getElementById('layerB').addEventListener('click', () => {
+      state.currentLayer = 'B';
+      ['layerF', 'layerFB', 'layerB'].forEach(id => document.getElementById(id).classList.toggle('active', id === 'layerB'));
+      fitToContent();  // 自动适应画布尺寸
+    });
+
+    // 搜索框 - 实时模糊搜索（过滤全部内容）
+    document.getElementById('searchInput').addEventListener('input', (e) => {
+      state.searchQuery = e.target.value;
+      state.highlightFilterMode = false;
+      const currentData = state.aggregateMode ? state.bomData : state.flatBomData;
+      renderBomTable(currentData);
+    });
+
+    // 位号过滤框 - 输入时高亮，回车后过滤
+    document.getElementById('highlightInput').addEventListener('input', (e) => {
+      state.highlightQuery = e.target.value;
+      state.highlightFilterMode = false;
+      const currentData = state.aggregateMode ? state.bomData : state.flatBomData;
+      renderBomTable(currentData);
+    });
+
+    document.getElementById('highlightInput').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        state.highlightFilterMode = true;
+        const currentData = state.aggregateMode ? state.bomData : state.flatBomData;
+        renderBomTable(currentData);
+      }
+    });
+
+    // 清除位号过滤 - ESC 键
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && state.highlightFilterMode) {
+        state.highlightFilterMode = false;
+        state.highlightQuery = '';
+        document.getElementById('highlightInput').value = '';
+        const currentData = state.aggregateMode ? state.bomData : state.flatBomData;
+        renderBomTable(currentData);
+      }
+    });
+
+    // 聚合/非聚合切换
+    document.getElementById('aggregateToggle').addEventListener('click', function() {
+      state.aggregateMode = !state.aggregateMode;
+      this.classList.toggle('active');
+      this.textContent = state.aggregateMode ? '📦 聚合' : '📄 列表';
+      this.title = state.aggregateMode ? '切换到列表模式' : '切换到聚合模式';
+      const currentData = state.aggregateMode ? state.bomData : state.flatBomData;
+      renderBomTable(currentData);
+    });
+
+    // 导出 CSV
+    document.getElementById('exportBtn').addEventListener('click', function() {
+      exportToCsv();
+    });
+
+    document.getElementById('selectAll').addEventListener('change', e => {
+      const checked = e.target.checked;
+      document.querySelectorAll('.bom-check').forEach(cb => {
+        cb.checked = checked;
+        const tr = cb.closest('tr');
+        if (checked) {
+          state.checkedItems.add(parseInt(cb.dataset.id));
+          tr.classList.add('checked');
+        } else {
+          state.checkedItems.delete(parseInt(cb.dataset.id));
+          tr.classList.remove('checked');
+        }
+      });
+    });
+
+    window.addEventListener('resize', () => { renderPcb(); });
+  </script>
+</body>
+</html>

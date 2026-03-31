@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-i18n="about-title">关于</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px;
+        }
+        .about-container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 460px;
+            width: 100%;
+            text-align: center;
+            padding: 24px 30px;
+        }
+        .logo {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 12px;
+            display: block;
+        }
+        .app-name {
+            font-size: 22px;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 6px;
+        }
+        .app-version {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 12px;
+        }
+        .divider {
+            height: 1px;
+            background: linear-gradient(to right, transparent, #e0e0e0, transparent);
+            margin: 14px 0;
+        }
+        .description {
+            font-size: 14px;
+            color: #555;
+            line-height: 1.6;
+            margin-bottom: 14px;
+        }
+        .info-item {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: #333;
+        }
+        .info-label {
+            font-weight: 600;
+            margin-right: 8px;
+            color: #667eea;
+        }
+        .link {
+            color: #667eea;
+            text-decoration: none;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        .link:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+        .ok-btn {
+            margin-top: 16px;
+            padding: 10px 32px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        .ok-btn:hover {
+            opacity: 0.85;
+        }
+    </style>
+</head>
+<body>
+    <div class="about-container">
+        <img class="logo" src="/images/logo.png" alt="logo">
+        <h1 class="app-name" data-i18n="about-app-name">交互式BOM</h1>
+        <div class="app-version" data-i18n="about-version">版本 1.0.0</div>
+
+        <div class="divider"></div>
+
+        <p class="description" data-i18n="about-description">
+            交互式 BOM 查看器，支持查看和预览 PCB 元件清单，提供实时 PCB 预览，点击 BOM 表格可高亮显示对应元件位置，支持顶层/底层/双面视图切换。
+        </p>
+
+        <div class="info-item">
+            <span class="info-label" data-i18n="about-publisher">发布者：</span>
+			<a class="link" onclick="openLink('https://easyeda.com/')">
+				EasyEDA
+            </a>
+        </div>
+
+        <div class="info-item">
+            <span class="info-label" data-i18n="about-license">许可证：</span>
+            <span>Apache-2.0</span>
+        </div>
+
+        <div class="info-item">
+            <span class="info-label" data-i18n="about-repository">仓库地址：</span>
+            <a class="link" onclick="openLink('https://github.com/easyeda/eext-interactive-bom')">
+                GitHub
+            </a>
+        </div>
+
+        <div class="info-item">
+            <span class="info-label" data-i18n="about-help-doc">帮助文档：</span>
+            <a class="link" onclick="openLink('https://github.com/easyeda/eext-interactive-bom#readme')" data-i18n="about-view-doc">
+                查看文档
+            </a>
+        </div>
+
+        <button class="ok-btn" onclick="closeAbout()" data-i18n="confirm">确定</button>
+    </div>
+
+    <script>
+        // 内嵌翻译数据
+        const translations = {
+            'zh-Hans': {
+                'about-title': '关于',
+                'about-app-name': '交互式BOM',
+                'about-version': '版本 1.0.0',
+                'about-description': '交互式 BOM 查看器，支持查看和预览 PCB 元件清单，提供实时 PCB 预览，点击 BOM 表格可高亮显示对应元件位置，支持顶层/底层/双面视图切换。',
+                'about-publisher': '发布者：',
+                'about-license': '许可证：',
+                'about-repository': '仓库地址：',
+                'about-help-doc': '帮助文档：',
+                'about-view-doc': '查看文档',
+                'confirm': '确定'
+            },
+            'en': {
+                'about-title': 'About',
+                'about-app-name': 'Interactive BOM',
+                'about-version': 'Version 1.0.0',
+                'about-description': 'Interactive BOM viewer with real-time PCB preview. Click BOM table rows to highlight components on the board. Supports top/bottom/both layer views.',
+                'about-publisher': 'Publisher:',
+                'about-license': 'License:',
+                'about-repository': 'Repository:',
+                'about-help-doc': 'Documentation:',
+                'about-view-doc': 'View Docs',
+                'confirm': 'OK'
+            }
+        };
+
+        let i18nData = {};
+
+        // 加载多语言
+        async function loadI18n() {
+            try {
+                // 获取当前语言
+                let lang = 'zh-Hans';
+                if (typeof eda !== 'undefined' && eda.sys_I18n && typeof eda.sys_I18n.getCurrentLanguage === 'function') {
+                    lang = await eda.sys_I18n.getCurrentLanguage();
+                }
+
+                // 使用内嵌的翻译数据
+                i18nData = translations[lang] || translations['zh-Hans'];
+                applyI18n();
+            } catch (error) {
+                console.error('[About] Load i18n error:', error);
+                // 使用默认的中文
+                i18nData = translations['zh-Hans'];
+                applyI18n();
+            }
+        }
+
+        // 应用多语言
+        function applyI18n() {
+            try {
+                document.querySelectorAll('[data-i18n]').forEach(el => {
+                    const key = el.getAttribute('data-i18n');
+                    if (key && i18nData[key]) {
+                        el.textContent = i18nData[key];
+                    }
+                });
+
+                if (i18nData['about-title']) {
+                    document.title = i18nData['about-title'];
+                }
+            } catch (error) {
+                console.error('[About] Apply i18n error:', error);
+            }
+        }
+
+        function openLink(url) {
+            eda.sys_Window.open(url);
+        }
+
+        function closeAbout() {
+            eda.sys_IFrame.closeIFrame('ibom-about');
+        }
+
+        // 页面加载完成后初始化
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', loadI18n);
+        } else {
+            loadI18n();
+        }
+    </script>
+</body>
+</html>

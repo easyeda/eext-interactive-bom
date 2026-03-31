@@ -1,0 +1,55 @@
+{
+	"name": "eext-interactive-bom",
+	"uuid": "041a5a6718b745699786e30b736f25b6",
+	"displayName": "交互式BOM",
+	"description": "交互式BOM，支持查看和预览 BOM 内容，相互定位，支持双面布局排版",
+	"version": "1.0.0",
+	"publisher": "",
+	"engines": {
+		"eda": "^3.0.0"
+	},
+	"license": "Apache-2.0",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/easyeda/eext-interactive-bom"
+	},
+	"categories": "PCB",
+	"keywords": [
+		"BOM",
+		"iBOM",
+		"交互式BOM",
+		"interactive-bom"
+	],
+	"images": {
+		"logo": "./images/logo.png"
+	},
+	"homepage": "https://github.com/easyeda/eext-interactive-bom",
+	"bugs": "https://github.com/easyeda/eext-interactive-bom/issues",
+	"activationEvents": {},
+	"entry": "./dist/index",
+	"dependentExtensions": {},
+	"resources": [
+		"./iframe/ibom-viewer.html",
+		"./iframe/about.html"
+	],
+	"headerMenus": {
+		"pcb": [
+			{
+				"id": "InteractiveBom",
+				"title": "Interactive BOM",
+				"menuItems": [
+					{
+						"id": "showInteractiveBomPopup",
+						"title": "Open Interactive BOM...",
+						"registerFn": "showInteractiveBomPopup"
+					},
+					{
+						"id": "about",
+						"title": "About...",
+						"registerFn": "about"
+					}
+				]
+			}
+		]
+	}
+}

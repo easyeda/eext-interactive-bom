@@ -1,0 +1,31 @@
+{
+	"permissions": {
+		"allow": [
+			"Bash(mkdir *)",
+			"Bash(npm install)",
+			"Bash(npm run *)",
+			"Bash(node *)",
+			"Bash(do *)",
+			"Bash(findstr *)",
+			"Bash(set *)",
+			"Bash(goto *)",
+			"Bash(powershell *)",
+			"Bash(start *)",
+			"Bash(dir *)",
+			"Bash(c:\\users\\aoc\\.qwen\\skills\\easyeda-api\\start-bridge.bat)",
+			"Bash(curl *)",
+			"Bash(timeout *)",
+			"Bash(true)",
+			"Bash(copy *)",
+			"Bash(tar *)",
+			"Bash(rmdir *)",
+			"Bash(type *)",
+			"Bash(move *)",
+			"Bash(del *)",
+			"Bash(wc *)",
+			"Bash(echo.)",
+			"Bash(git checkout *)"
+		]
+	},
+	"$version": 3
+}
