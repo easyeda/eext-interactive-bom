@@ -21,7 +21,7 @@
 		"interactive-bom"
 	],
 	"images": {
-		"logo": "./images/logo.svg"
+		"logo": "./images/logo.png"
 	},
 	"homepage": "https://github.com/easyeda/eext-interactive-bom",
 	"bugs": "https://github.com/easyeda/eext-interactive-bom/issues",
