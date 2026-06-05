@@ -14,7 +14,7 @@ async function init() {
 		if (isBrowser) {
 			// 浏览器模式：显示提示
 			document.getElementById('statusText').textContent = window.i18n.t('ui-status-ready');
-			alert('提示：此 HTML 文件是从 EasyEDA 导出的静态快照。\n\n功能限制：\n- 无法获取实时 PCB 数据\n- 无法与 EasyEDA 交互\n- 仅用于查看和分享\n\n请使用"导出 CSV"功能获取可编辑的数据。');
+			alert(window.i18n.t('ui-browser-alert'));
 			return;
 		}
 
@@ -84,7 +84,7 @@ function initTableSort() {
 	const headers = document.querySelectorAll('.bom-table th[data-sort]');
 	headers.forEach((th) => {
 		th.style.cursor = 'pointer';
-		th.title = '点击排序';
+		th.title = window.i18n.t('ui-sort-hint');
 
 		let isClick = true;
 		let startX = 0;
@@ -170,7 +170,7 @@ document.getElementById('darkModeBtn').addEventListener('click', function () {
 	}
 
 	this.textContent = state.darkMode ? '☀️' : '🌙';
-	this.title = state.darkMode ? '切换到亮色模式' : '切换到暗色模式';
+	this.title = state.darkMode ? window.i18n.t('ui-toggle-light-mode') : window.i18n.t('ui-toggle-dark-mode');
 
 	updateCanvasBackground();
 	renderPcb(true);
@@ -355,6 +355,9 @@ function applyI18n() {
 		const backLabel = document.querySelector('#backContainer .canvas-label');
 		if (frontLabel) frontLabel.textContent = t('ui-label-front');
 		if (backLabel) backLabel.textContent = t('ui-label-back');
+
+		// 页面标题
+		document.title = t('ui-page-title');
 
 		console.log('[iBom] applyI18n complete');
 	} catch (e) {

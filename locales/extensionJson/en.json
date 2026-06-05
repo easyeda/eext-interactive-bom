@@ -2,5 +2,10 @@
 	"Interactive BOM": "Interactive BOM",
 	"Open Interactive BOM...": "Open Interactive BOM...",
 	"Generate & Download HTML...": "Generate & Download HTML...",
-	"About...": "About..."
+	"About...": "About...",
+	"交互式BOM": "Interactive BOM",
+	"交互式 BOM 查看器，提供实时 PCB 预览与 BOM 联动功能": "Interactive BOM viewer with real-time PCB preview and BOM-to-PCB linkage",
+	"BOM": "BOM",
+	"iBOM": "iBOM",
+	"interactive-bom": "interactive-bom"
 }

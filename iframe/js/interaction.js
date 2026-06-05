@@ -232,7 +232,7 @@ function initCanvasPanZoom() {
 
 			const menuItem = document.createElement('div');
 			menuItem.className = 'context-menu-item';
-			menuItem.textContent = '🔄 重置画布';
+			menuItem.textContent = '🔄 ' + window.i18n.t('ui-reset-canvas');
 			menuItem.addEventListener('click', () => {
 				resetView();
 				menu.remove();

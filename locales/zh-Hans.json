@@ -51,5 +51,16 @@
 	"table-header-layer": "层",
 	"layer-top": "顶层",
 	"layer-bottom": "底层",
-	"layer-both": "双面"
+	"layer-both": "双面",
+	"ui-sort-hint": "点击排序",
+	"ui-toggle-light-mode": "切换到亮色模式",
+	"ui-toggle-dark-mode": "切换到暗色模式",
+	"ui-layer-top-name": "顶面",
+	"ui-layer-bottom-name": "底面",
+	"ui-toast-layer-switch": "元件在${1}，请切换${1}预览",
+	"ui-status-selected": "选中：",
+	"ui-reset-canvas": "重置画布",
+	"ui-browser-alert": "提示：此 HTML 文件是从 EasyEDA 导出的静态快照。\n\n功能限制：\n- 无法获取实时 PCB 数据\n- 无法与 EasyEDA 交互\n- 仅用于查看和分享\n\n请使用\"导出 CSV\"功能获取可编辑的数据。",
+	"ui-export-html-alert": "HTML 已导出！\n\n注意：导出的 HTML 文件需要在 EasyEDA 环境中才能完整运行。\n如需在浏览器中使用，请使用\"导出 CSV\"功能。",
+	"ui-page-title": "交互式BOM"
 }

@@ -51,5 +51,16 @@
 	"table-header-layer": "Layer",
 	"layer-top": "Top",
 	"layer-bottom": "Bottom",
-	"layer-both": "Both"
+	"layer-both": "Both",
+	"ui-sort-hint": "Click to sort",
+	"ui-toggle-light-mode": "Switch to light mode",
+	"ui-toggle-dark-mode": "Switch to dark mode",
+	"ui-layer-top-name": "Top side",
+	"ui-layer-bottom-name": "Bottom side",
+	"ui-toast-layer-switch": "Component is on ${1}, please switch to ${1} view",
+	"ui-status-selected": "Selected: ",
+	"ui-reset-canvas": "Reset Canvas",
+	"ui-browser-alert": "Notice: This HTML file is a static snapshot exported from EasyEDA.\n\nFeature limitations:\n- Cannot get real-time PCB data\n- Cannot interact with EasyEDA\n- For viewing and sharing only\n\nPlease use \"Export CSV\" to get editable data.",
+	"ui-export-html-alert": "HTML exported!\n\nNote: The exported HTML file can only fully run in EasyEDA environment.\nFor browser use, please use \"Export CSV\" function.",
+	"ui-page-title": "Interactive BOM"
 }

@@ -1,5 +1,10 @@
 {
 	"Interactive BOM": "交互式 BOM",
 	"Open Interactive BOM...": "打开交互式 BOM...",
-	"About...": "关于..."
+	"About...": "关于...",
+	"交互式BOM": "交互式BOM",
+	"交互式 BOM 查看器，提供实时 PCB 预览与 BOM 联动功能": "交互式 BOM 查看器，提供实时 PCB 预览与 BOM 联动功能",
+	"BOM": "BOM",
+	"iBOM": "iBOM",
+	"interactive-bom": "交互式BOM"
 }

@@ -173,12 +173,12 @@ function selectRow(item) {
 		const isTop = comp.layer === 1 || comp.layer === 11 || comp.layer === 'F';
 		const targetLayer = isTop ? 'F' : 'B';
 
-		const targetLayerName = isTop ? '顶面' : '底面';
+		const targetLayerName = isTop ? window.i18n.t('ui-layer-top-name') : window.i18n.t('ui-layer-bottom-name');
 
 		// 检查当前层与元件所在层是否不同
 		if (state.currentLayer !== targetLayer && state.currentLayer !== 'FB') {
 			// 当前是单面预览且与元件所在层不同，显示提示
-			showToast(`元件在${targetLayerName}，请切换${targetLayerName}预览`);
+			showToast(window.i18n.t('ui-toast-layer-switch', targetLayerName));
 		}
 		else if (state.currentLayer === 'FB') {
 			// 当前是双面预览，正常处理（不切换层）
@@ -206,7 +206,7 @@ function selectRow(item) {
 		}
 	}
 
-	document.getElementById('statusText').textContent = `选中：${item.designators.join(', ')}`;
+	document.getElementById('statusText').textContent = `${window.i18n.t('ui-status-selected')}${item.designators.join(', ')}`;
 }
 
 // 显示提示消息
@@ -464,5 +464,5 @@ function exportToHtml() {
 	link.click();
 	document.body.removeChild(link);
 	URL.revokeObjectURL(url);
-	alert('HTML 已导出！\n\n注意：导出的 HTML 文件需要在 EasyEDA 环境中才能完整运行。\n如需在浏览器中使用，请使用"导出 CSV"功能。');
+	alert(window.i18n.t('ui-export-html-alert'));
 }
