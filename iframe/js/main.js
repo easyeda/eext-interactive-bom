@@ -356,6 +356,12 @@ function applyI18n() {
 		if (frontLabel) frontLabel.textContent = t('ui-label-front');
 		if (backLabel) backLabel.textContent = t('ui-label-back');
 
+		// 状态栏标签
+		const bomStatsItems = document.getElementById('bomStatsItems');
+		const bomStatsComponents = document.getElementById('bomStatsComponents');
+		if (bomStatsItems) bomStatsItems.textContent = t('ui-status-items');
+		if (bomStatsComponents) bomStatsComponents.textContent = t('ui-status-components');
+
 		// 页面标题
 		document.title = t('ui-page-title');
 

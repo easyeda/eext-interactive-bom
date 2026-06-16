@@ -11,18 +11,18 @@ const logBuffer: string[] = [];
 // 内嵌翻译数据
 const embeddedTranslations: Record<string, Record<string, string>> = {
 	'zh-Hans': {
-		'InteractiveBOM': '交互式 BOM',
+		'Interactive BOM': '交互式 BOM',
 		'About': '关于',
 		'Error': '错误',
-		'PCBDataNotFound': '无法获取 PCB 数据，请确保当前处于 PCB 编辑器中',
-		'GeneratingHTML': '正在生成 HTML...',
+		'Cannot get PCB data, please make sure you are in PCB editor': '无法获取 PCB 数据，请确保当前处于 PCB 编辑器中',
+		'Generating HTML...': '正在生成 HTML...',
 	},
 	'en': {
-		'InteractiveBOM': 'Interactive BOM',
+		'Interactive BOM': 'Interactive BOM',
 		'About': 'About',
 		'Error': 'Error',
-		'PCBDataNotFound': 'Cannot get PCB data, please make sure you are in PCB editor',
-		'GeneratingHTML': 'Generating HTML...',
+		'Cannot get PCB data, please make sure you are in PCB editor': 'Cannot get PCB data, please make sure you are in PCB editor',
+		'Generating HTML...': 'Generating HTML...',
 	},
 };
 
@@ -43,12 +43,12 @@ async function loadTranslations(): Promise<void> {
 		// @ts-expect-error - sys_I18n 可能不存在
 		if (eda.sys_I18n && typeof eda.sys_I18n.getCurrentLanguage === 'function') {
 			lang = await eda.sys_I18n.getCurrentLanguage();
-			console.log('[iBOM] Current language:', lang);
+			console.warn('[iBOM] Current language:', lang);
 		}
 
 		// 使用内嵌的翻译数据
 		translations = embeddedTranslations[lang] || embeddedTranslations['zh-Hans'];
-		console.log('[iBOM] Translations loaded:', Object.keys(translations).length, 'keys');
+		console.warn('[iBOM] Translations loaded:', Object.keys(translations).length, 'keys');
 		translationsLoaded = true;
 	}
 	catch (e) {
@@ -98,7 +98,7 @@ async function showInteractiveBom(mode: 'popup' | 'window' = 'popup'): Promise<v
 		const isPcbDoc = await checkPcbDocumentActive();
 
 		if (!isPcbDoc) {
-			const msg = await t('PCBDataNotFound');
+			const msg = await t('Cannot get PCB data, please make sure you are in PCB editor');
 			const title = await t('Error');
 			await eda.sys_Dialog.showConfirmationMessage(msg, title);
 			return;
@@ -109,7 +109,7 @@ async function showInteractiveBom(mode: 'popup' | 'window' = 'popup'): Promise<v
 		if (mode === 'popup') {
 			// 打开 IFrame 弹出窗口
 			const iframeId = `ibom-${Date.now()}`;
-			const title = await t('InteractiveBOM');
+			const title = await t('Interactive BOM');
 
 			// @ts-expect-error - sys_IFrame 可能不存在
 			if (eda.sys_IFrame && typeof eda.sys_IFrame.openIFrame === 'function') {
@@ -159,13 +159,13 @@ export function generateAndDownload(): Promise<void> {
 		try {
 			const isPcbDoc = await checkPcbDocumentActive();
 			if (!isPcbDoc) {
-				const msg = await t('PCBDataNotFound');
+				const msg = await t('Cannot get PCB data, please make sure you are in PCB editor');
 				const title = await t('Error');
 				await eda.sys_Dialog.showConfirmationMessage(msg, title);
 				return;
 			}
 
-			const msg = await t('GeneratingHTML');
+			const msg = await t('Generating HTML...');
 			await eda.sys_Dialog.showConfirmationMessage(msg, 'Info');
 		}
 		catch (error) {

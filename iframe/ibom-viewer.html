@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>交互式BOM</title>
+  <title>Interactive BOM</title>
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -110,15 +110,15 @@
       <div class="bom-toolbar">
         <div class="bom-toolbar-left">
           <div class="search-box">
-            <input type="text" id="highlightInput" placeholder="过滤位号...">
+            <input type="text" id="highlightInput" placeholder="Filter designators...">
           </div>
           <div class="search-box">
-            <input type="text" id="searchInput" placeholder="过滤...">
+            <input type="text" id="searchInput" placeholder="Filter...">
           </div>
         </div>
         <div class="bom-toolbar-right">
-          <button id="aggregateToggle" class="toggle-btn" title="切换聚合模式">📄</button>
-          <button id="exportCsvBtn" class="toggle-btn" title="导出 CSV">📥</button>
+          <button id="aggregateToggle" class="toggle-btn" title="Toggle aggregate mode">📄</button>
+          <button id="exportCsvBtn" class="toggle-btn" title="Export CSV">📥</button>
         </div>
       </div>
       <div class="bom-container">
@@ -126,11 +126,11 @@
           <thead>
             <tr>
               <th class="col-check"><input type="checkbox" id="selectAll"></th>
-              <th class="col-designators" data-sort="designators" id="thDesignators">位号</th>
-              <th class="col-value" data-sort="value" id="thValue">值</th>
-              <th class="col-package" data-sort="package" id="thPackage">封装</th>
-              <th class="col-quantity" data-sort="count" id="thQuantity">数量</th>
-              <th class="col-layer" data-sort="layer" id="thLayer">层</th>
+              <th class="col-designators" data-sort="designators" id="thDesignators">Designators</th>
+              <th class="col-value" data-sort="value" id="thValue">Value</th>
+              <th class="col-package" data-sort="package" id="thPackage">Package</th>
+              <th class="col-quantity" data-sort="count" id="thQuantity">Qty</th>
+              <th class="col-layer" data-sort="layer" id="thLayer">Layer</th>
             </tr>
           </thead>
           <tbody id="bomBody"></tbody>
@@ -141,31 +141,31 @@
     <div class="preview-panel">
       <div class="preview-toolbar">
         <div class="preview-toolbar-group">
-          <button id="darkModeBtn" class="dark-mode-btn" title="切换暗色模式">🌙</button>
+          <button id="darkModeBtn" class="dark-mode-btn" title="Toggle dark mode">🌙</button>
         </div>
         <div class="preview-toolbar-group">
-          <label><input type="checkbox" id="showRefs" checked> 位号</label>
-          <label><input type="checkbox" id="showValues" checked> 值</label>
-          <label><input type="checkbox" id="showPads" checked> 焊盘</label>
-          <label><input type="checkbox" id="showTracks"> 导线</label>
+          <label><input type="checkbox" id="showRefs" checked> Refs</label>
+          <label><input type="checkbox" id="showValues" checked> Values</label>
+          <label><input type="checkbox" id="showPads" checked> Pads</label>
+          <label><input type="checkbox" id="showTracks"> Tracks</label>
         </div>
         <div class="preview-toolbar-group">
-          <label><input type="checkbox" id="autoPan"> 自动平移</label>
-          <label><input type="checkbox" id="autoZoom"> 自动缩放</label>
+          <label><input type="checkbox" id="autoPan"> Auto Pan</label>
+          <label><input type="checkbox" id="autoZoom"> Auto Zoom</label>
         </div>
         <div class="preview-toolbar-group">
-          <button id="layerF" class="active">顶层</button>
-          <button id="layerFB">双面</button>
-          <button id="layerB">底层</button>
+          <button id="layerF" class="active">Top</button>
+          <button id="layerFB">Both</button>
+          <button id="layerB">Bottom</button>
         </div>
       </div>
       <div class="canvas-wrapper">
         <div class="canvas-container" id="frontContainer">
-          <div class="canvas-label">顶层 (Front)</div>
+          <div class="canvas-label">Top (Front)</div>
           <canvas id="frontCanvas"></canvas>
         </div>
         <div class="canvas-container" id="backContainer">
-          <div class="canvas-label">底层 (Back)</div>
+          <div class="canvas-label">Bottom (Back)</div>
           <canvas id="backCanvas"></canvas>
         </div>
       </div>
@@ -173,8 +173,8 @@
   </div>
   <div class="status-bar">
     <div class="status-bar-left">
-      <span id="statusText">准备就绪</span>
-      <span id="bomStats">BOM: <span id="bomCount">0</span> 项 | 元件：<span id="compCount">0</span></span>
+      <span id="statusText">Ready</span>
+      <span id="bomStats">BOM: <span id="bomCount">0</span> <span id="bomStatsItems">items</span> | <span id="bomStatsComponents">components</span>: <span id="compCount">0</span></span>
     </div>
     <div class="status-bar-right">
       <span id="layerInfo">F: 0 | B: 0</span>
